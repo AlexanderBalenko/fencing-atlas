@@ -879,6 +879,7 @@ function renderAbout(box) {
   const sub = { items: ITEMS.length, sources: used.size, years: ys.length ? `${Math.min(...ys)}–${Math.max(...ys)}` : "" };
   const art = h("article", { class: "about" });
   art.innerHTML = (ABOUT || "<h1>Атлас упражнений</h1>").replace(/\{\{(\w+)\}\}/g, (m, k) => sub[k] ?? m);
+  art.prepend(h("div", { class: "logo", role: "img", "aria-label": "Эмблема атласа: фехтовальщик над раскрытой книгой" }));
   art.append(h("div", { class: "go" }, h("button", { type: "button", class: "primary", onclick: () => showView("list") }, "К упражнениям")));
   box.append(art);
   box.scrollTop = 0;
