@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Бой от задней границы или на укороченном поле — «пространственный цейтнот» — Атлас упражнений</title>
+<base href="../">
+<meta name="atlas-card" content="rear-boundary-bout">
+<meta name="description" content="Бой на 5 уколов: сначала Б пять схваток начинает у задней границы, потом меняются. У границы схватки чаще кончаются обоюдными простыми атаками; опытный в этих условиях берёт защиту (рапира, сабля)…">
+<meta property="og:title" content="Бой от задней границы или на укороченном поле — «пространственный цейтнот» — Атлас упражнений">
+<meta property="og:description" content="Бой на 5 уколов: сначала Б пять схваток начинает у задней границы, потом меняются. У границы схватки чаще кончаются обоюдными простыми атаками; опытный в этих условиях берёт защиту (рапира, сабля)…">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=PT+Mono&display=swap">
+<link rel="stylesheet" href="atlas.css?v=c51c1db7d3">
+</head>
+<body>
+<aside>
+  <header>
+    <div class="titlebar"><h1>Атлас упражнений</h1><button type="button" id="theme" aria-label="Сменить тему" title="Сменить тему"></button></div>
+    <div class="row"><input type="search" id="q" placeholder="Поиск: название, семейство, текст" aria-label="Поиск"></div>
+    <div class="meta" id="count"></div>
+    <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+  </header>
+  <div class="fscroll"><div class="fbox" id="fbox"><div class="fhead">Фильтры <span class="meta" id="fsum"></span></div><div id="filters"></div></div></div>
+  <div class="fshow"><button type="button" class="primary" id="fshow">Показать</button></div>
+</aside>
+
+<main id="card"><p class="empty">Загружаю…</p></main>
+
+<section id="side" aria-label="Упражнения и заметки">
+  <div class="sidehead"><h3>Упражнения</h3><button type="button" class="link" id="tree-collapse" title="Свернуть все семейства, кроме открытого">свернуть</button><button type="button" class="link" id="tree-expand">развернуть</button></div>
+  <div id="list"></div>
+  <details id="notes"><summary>Заметки <span class="meta" id="notes-meta"></span></summary><div class="nbody">
+  <div id="note-list"></div>
+  <form id="note-form">
+    <label class="meta" for="nt-target">К чему</label>
+    <select id="nt-target"></select>
+    <label class="meta" for="nt-text">Заметка</label>
+    <textarea id="nt-text" placeholder="Что не так или что добавить. Ctrl+Enter — сохранить"></textarea>
+    <div class="row"><button type="submit" class="primary">Сохранить заметку</button><span class="meta" id="nt-msg"></span></div>
+  </form>
+  </div></details>
+</section>
+
+<nav id="tabs" aria-label="Экраны">
+  <button type="button" data-v="filters"><span class="ic" aria-hidden="true">⚲</span><span>Фильтры<span class="cnt" id="tab-fcnt" hidden></span></span></button>
+  <button type="button" data-v="list"><span class="ic" aria-hidden="true">☰</span><span>Список</span></button>
+  <button type="button" data-v="card"><span class="ic" aria-hidden="true">▤</span><span>Карточка</span></button>
+</nav>
+
+<script src="data.js?v=fd4ff62267"></script>
+<script src="atlas.js?v=6a5b3a7750"></script>
+</body>
+</html>
