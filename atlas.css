@@ -298,6 +298,7 @@ details.more > summary{cursor:pointer; font-size:.8rem; color:var(--accent)}
 .about ul, .about ol{margin:.2em 0 1em; padding-left:1.4em}
 .about li{margin:0 0 .5em}
 .about li::marker{color:var(--accent); font-weight:600}
+.about a{color:var(--accent); text-decoration-thickness:1px; text-underline-offset:2px}
 .about .go{margin-top:18px; display:none}
 #about-btn{padding:2px 9px; font-size:.82rem; line-height:1.5; white-space:nowrap}
 .titlebar h1{flex:1 0 100%}   /* название — своей строкой, кнопки «Главная», вид и тема — строкой ниже */
