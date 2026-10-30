@@ -303,4 +303,33 @@ details.more > summary{cursor:pointer; font-size:.8rem; color:var(--accent)}
 .titlebar h1 a{color:inherit; text-decoration:none}
 .titlebar h1 a:hover{color:var(--accent)}
 @media (max-width: 700px){ .about .go{display:block} .about .go button{width:100%; padding:12px; font-size:1rem; border-radius:10px} #about-btn{padding:6px 12px} }
+/* настройки вида */
+#view-btn{padding:2px 8px; font-size:.95rem; line-height:1.3}
+#viewpanel{position:fixed; inset:0; z-index:40; background:color-mix(in srgb, var(--fg) 28%, transparent); display:flex; justify-content:flex-start; align-items:flex-start;
+  padding:56px 12px 12px}
+#viewpanel .vp{background:var(--surface); border:1px solid var(--line); border-radius:12px; width:min(440px, 100%); max-height:calc(100vh - 80px); overflow:auto;
+  padding:14px 16px 16px; box-shadow:0 12px 40px color-mix(in srgb, #000 25%, transparent)}
+.vp-head{display:flex; align-items:baseline; gap:8px; margin-bottom:10px}
+.vp-head b{flex:1; font-size:1.05rem}
+.vp-presets{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px}
+.vp-presets button{display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; padding:8px 10px; border-radius:8px; min-width:0}
+.vp-presets button small{color:var(--muted); font-size:.72rem; line-height:1.3}
+.vp-presets button[aria-pressed="true"]{background:color-mix(in srgb, var(--accent) 14%, var(--surface))}
+.vp-presets button[aria-pressed="true"] small{color:var(--accent)}
+.vp-custom{font-size:.8rem; color:var(--muted); margin-top:6px}
+.vp-grp{margin-top:14px}
+.vp-grp h4{margin:0 0 4px; font-size:.76rem; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.vp-grp label{display:flex; gap:8px; align-items:flex-start; padding:4px 0; font-size:.88rem; cursor:pointer}
+.vp-grp label input{margin-top:3px}
+.vp-grp label small{display:block; color:var(--muted); font-size:.76rem}
+.vp-grp .sel{display:flex; gap:8px; align-items:center; padding:4px 0; font-size:.88rem}
+.formline{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:.9rem}
+.formline span{display:inline-flex; gap:6px; align-items:center}
+@media (max-width: 700px){
+  #viewpanel{align-items:flex-end; padding:0}
+  #viewpanel .vp{width:100%; max-height:88vh; border-radius:14px 14px 0 0; padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
+  .vp-grp label{padding:7px 0; font-size:.95rem}
+  .vp-grp label input{width:18px; height:18px}
+  #view-btn{padding:6px 11px}
+}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important} }

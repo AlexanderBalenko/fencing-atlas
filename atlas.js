@@ -11,6 +11,79 @@ try { const t = localStorage.getItem("atlas-theme"); if (t === "dark" || t === "
 let ABOUT = "", V, SRC, ITEMS = [], NOTES = [], REVIEWED = {}, byId = new Map(), cur = null, mode = "ex";
 const PUBLIC = !!window.ATLAS_DATA;   // публичная веб-версия: только чтение, без ссылок на оригинал
 const isMobile = () => window.matchMedia && matchMedia("(max-width: 700px)").matches;
+/* Вид: что показывать. Три режима и тонкая настройка; выбор запоминается в браузере посетителя.
+   Локальный просмотрщик разбора — всегда «Полностью». */
+const VIEW_OPTS = [
+  ["Карточка", [
+    ["ladder", "Лестница", "ступени: что тренирует, что должно уже работать"],
+    ["legend", "Легенда лестницы", "подписи «фокус / попутно / ✓» под лестницей"],
+    ["meta", "Служебная строка", "тип, структура, уверенность разметки, период источника"],
+    ["bolt", "Молния электрофиксации", "судили ли в эпоху источника с аппаратом"]]],
+  ["Номера", [
+    ["goal", "Цель номера", "помогает, нейтрален, противодействует, противник"],
+    ["errorVis", "Ошибка видна", "показывает ли упражнение ошибку само"],
+    ["errCrit", "Критерий ошибки", "по чему судить: форма, момент, выбор…"],
+    ["scoring", "Зачёт", "что считается успехом"],
+    ["analytics", "Поля разбора", "воздействие на противника, сознательная нагрузка, регламентация, требования боя, риск подмены"]]],
+  ["Регуляторы", [
+    ["regs", "Регуляторы", null, [["all", "все"], ["applicable", "только применимые"], ["none", "не показывать"]]],
+    ["regNotes", "Пояснения к регуляторам", "почему стоит такое значение"]]],
+  ["Остальное", [
+    ["forms", "Формы", null, [["all", "все семь"], ["fit", "только подходящие"], ["line", "одной строкой"]]],
+    ["footwork", "Работа ног", null],
+    ["prereq", "Что должно уже работать", null],
+    ["conditions", "Условия", "особые условия: с закрытыми глазами, смена партнёров…"],
+    ["comment", "Комментарий", "обоснование разметки"]]],
+  ["Список и фильтры", [
+    ["listLadder", "Мини-лестница в списке", null],
+    ["listSource", "Источник и оружие в списке", null],
+    ["fYear", "Фильтр по году источника", null],
+    ["fMore", "Фильтры «Ещё»", "тип, наглядность ошибки, условия"]]],
+];
+const VIEW_PRESETS = {
+  short: { label: "Коротко", hint: "суть упражнения",
+    v: { ladder: false, legend: false, meta: false, bolt: false, goal: false, errorVis: false, errCrit: false, scoring: false, analytics: false,
+         regs: "none", regNotes: false, forms: "line", footwork: true, prereq: false, conditions: false, comment: false,
+         listLadder: false, listSource: true, fYear: false, fMore: false } },
+  coach: { label: "Тренеру", hint: "суть и как дозировать",
+    v: { ladder: true, legend: false, meta: false, bolt: true, goal: true, errorVis: true, errCrit: false, scoring: true, analytics: false,
+         regs: "applicable", regNotes: false, forms: "fit", footwork: true, prereq: true, conditions: true, comment: false,
+         listLadder: true, listSource: true, fYear: true, fMore: true } },
+  full: { label: "Полностью", hint: "вся разметка",
+    v: { ladder: true, legend: true, meta: true, bolt: true, goal: true, errorVis: true, errCrit: true, scoring: true, analytics: true,
+         regs: "all", regNotes: true, forms: "all", footwork: true, prereq: true, conditions: true, comment: true,
+         listLadder: true, listSource: true, fYear: true, fMore: true } },
+};
+const VKEY = "atlas-view-v1";
+let SHOW = Object.assign({}, VIEW_PRESETS.coach.v);
+function loadView() {
+  if (!PUBLIC) { SHOW = Object.assign({}, VIEW_PRESETS.full.v); return; }
+  try { const s = JSON.parse(localStorage.getItem(VKEY) || "null"); if (s) SHOW = Object.assign({}, VIEW_PRESETS.coach.v, s); } catch (e) {}
+}
+function saveView() { try { localStorage.setItem(VKEY, JSON.stringify(SHOW)); } catch (e) {} }
+const presetNow = () => Object.keys(VIEW_PRESETS).find(p => Object.entries(VIEW_PRESETS[p].v).every(([k, v]) => SHOW[k] === v)) || "";
+function setView(fn) { fn(SHOW); saveView(); renderViewPanel(); renderCard(); renderList(); }
+function renderViewPanel() {
+  const box = $("vp"); box.innerHTML = "";
+  const pn = presetNow();
+  box.append(h("div", { class: "vp-head" }, h("b", null, "Что показывать"), h("button", { type: "button", class: "link", onclick: closeView }, "закрыть")),
+    h("div", { class: "vp-presets" }, Object.entries(VIEW_PRESETS).map(([k, p]) =>
+      h("button", { type: "button", "aria-pressed": String(pn === k), onclick: () => setView(S => Object.assign(S, p.v)) }, h("b", null, p.label), h("small", null, p.hint)))),
+    h("div", { class: "vp-custom", hidden: pn ? true : null }, "Свой набор — настроено ниже"));
+  for (const [title, opts] of VIEW_OPTS) {
+    const g = h("div", { class: "vp-grp" }, h("h4", null, title));
+    for (const [k, label, hint, choices] of opts) {
+      if (choices) g.append(h("div", { class: "sel" }, h("span", null, label),
+        (() => { const sel = h("select", { "aria-label": label, onchange: e => setView(S => { S[k] = e.target.value; }) },
+          choices.map(([v, l]) => h("option", { value: v }, l))); sel.value = SHOW[k]; return sel; })()));
+      else g.append(h("label", null, h("input", { type: "checkbox", checked: !!SHOW[k], onchange: e => setView(S => { S[k] = e.target.checked; }) }),
+        h("span", null, label, hint ? h("small", null, hint) : null)));
+    }
+    box.append(g);
+  }
+}
+function openView() { renderViewPanel(); $("viewpanel").hidden = false; const b = $("vp").querySelector("button[aria-pressed='true']") || $("vp").querySelector("button"); if (b) b.focus(); }
+function closeView() { $("viewpanel").hidden = true; $("view-btn").focus(); }
 /* Адрес карточки. Локальный просмотрщик — «#id»; публичная версия — своя страница на каждое упражнение («…/id/»),
    корень сайта — document.baseURI (на страницах упражнений стоит <base href="../">). */
 const ROOT = new URL(".", document.baseURI).pathname;
@@ -30,7 +103,7 @@ function h(tag, attrs, ...kids) {
     if (v == null || v === false) continue;
     if (k === "class") e.className = v; else if (k.startsWith("on")) e[k] = v; else e.setAttribute(k, v === true ? "" : v);
   }
-  for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  for (const k of kids.flat(Infinity)) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
   return e;
 }
 async function api(path, body) {
@@ -91,7 +164,7 @@ function sourceContext(s) {
     const lab = (W[w] || {}).label || w, since = (W[w] || {}).electric_since;
     if (i) out.push(", ");
     out.push(lab);
-    if (since) {
+    if (since && SHOW.bolt) {
       const on = year >= since, y = S.year ? `источник ${S.year} г.` : "источник без точного года";
       out.push(bolt(on, on ? `электрофиксация: на этом оружии с ${since} г.; ${y}`
                            : `без электрофиксации: на этом оружии она появилась в ${since} г.; ${y} — судили без аппарата`));
@@ -137,7 +210,7 @@ function ladderView(it) {
   return h("div", { class: "ladwrap" }, grid,
     h("div", { class: "lfoot" }, it.technique === "none" ? h("span", { class: "lmark f", title: "Упражнение без фехтовальной техники: ступени ниже фокуса не требуются" }, "техники фехтования не требует") : null,
       marks.length ? [h("span", null, "Вне лестницы:"), ...marks] : null,
-      h("span", { class: "llegend" },
+      !SHOW.legend ? null : h("span", { class: "llegend" },
         h("span", null, h("i", { class: "sw f" }), "тренирует (фокус)"),
         h("span", null, h("i", { class: "sw a" }), "работает попутно"),
         h("span", null, h("i", { class: "sw" }, "✓"), "должно быть уже поставлено"))));
@@ -345,11 +418,11 @@ function match(it, G = F, skip = "") {
   if (!rows.length) return null;
   const rank = skip === "form" ? 2 : formRank(it, G.forms, G.possible);
   if (!rank) return null;
-  if (skip !== "year" && !yearOk(it, G.y0, G.y1, G.noYear)) return null;
+  if (skip !== "year" && SHOW.fYear && !yearOk(it, G.y0, G.y1, G.noYear)) return null;
   if (skip !== "weap" && !weapOk(it, G.weap, G.anyW)) return null;
-  if (skip !== "type" && !typeOk(it, G.types)) return null;
-  if (skip !== "obv" && G.obvious && !obviousOk(it)) return null;
-  if (skip !== "cond" && G.conds.length && !(it.conditions || []).some(c => G.conds.includes(c))) return null;
+  if (skip !== "type" && SHOW.fMore && !typeOk(it, G.types)) return null;
+  if (skip !== "obv" && SHOW.fMore && G.obvious && !obviousOk(it)) return null;
+  if (skip !== "cond" && SHOW.fMore && G.conds.length && !(it.conditions || []).some(c => G.conds.includes(c))) return null;
   return { rank, roles: rows.map(([l]) => l).filter(Boolean) };
 }
 function shownList() {
@@ -358,8 +431,8 @@ function shownList() {
   if (F.forms.length) out.sort((a, b) => b[1].rank - a[1].rank);   // сначала «хорошо», потом «с оговорками»; внутри — прежний порядок
   return out;
 }
-const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear,
-  F.weap.length, F.types.length, F.obvious, F.conds.length, F.status].filter(Boolean).length;
+const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
+  F.weap.length, SHOW.fMore && F.types.length, SHOW.fMore && F.obvious, SHOW.fMore && F.conds.length, F.status].filter(Boolean).length;
 const countIf = (skip, G) => ITEMS.reduce((n, it) => n + (match(it, G, skip) ? 1 : 0), 0);
 function upd(fn) { fn(F); saveF(); renderList(); }
 const tog = (arr, x) => arr.includes(x) ? arr.filter(y => y !== x) : arr.concat([x]);
@@ -403,7 +476,7 @@ function renderFilters() {
     () => upd(G => { G.forms = tog(G.forms, f); }), V.form[f].label));
   box.append(h("div", { class: "fh" }, "Формат"), fw, h("div", { class: "fopt" },
     h("label", null, h("input", { type: "checkbox", checked: F.possible, onchange: e => upd(G => { G.possible = e.target.checked; }) }), " и «с оговорками» — ниже в списке")));
-  // год
+  if (SHOW.fYear) {   // год (раздел можно спрятать в настройках вида)
   const lab = h("span", { class: "meta" }, `${F.y0} — ${F.y1}`);
   // один ползунок с интервалом: две ручки на общей дорожке, выбранный отрезок закрашен
   const sel = h("span", { class: "sel" }), span = Math.max(1, YR[1] - YR[0]);
@@ -416,6 +489,7 @@ function renderFilters() {
   box.append(h("div", { class: "fh" }, "Год источника ", lab), h("div", { class: "yrs" }, h("span", { class: "trk" }), sel, lo, hi), h("div", { class: "fopt" },
     h("label", null, h("input", { type: "checkbox", checked: F.noYear, onchange: e => upd(G => { G.noYear = e.target.checked; }) }), " и без даты"),
     (F.y0 > YR[0] || F.y1 < YR[1]) ? h("button", { type: "button", class: "link", onclick: () => upd(G => { G.y0 = YR[0]; G.y1 = YR[1]; }) }, "весь диапазон") : null));
+  }
   // оружие
   const ww = h("div", { class: "chips" });
   for (const w of Object.keys(V.weapons).filter(x => x !== "any"))
@@ -433,7 +507,7 @@ function renderFilters() {
     h("div", { class: "fh" }, "Условия"), cw,
     PUBLIC ? null : [h("div", { class: "fh" }, "Разбор"), h("div", { class: "chips" }, Object.entries(STATUS).filter(([k]) => k).map(([k, l]) =>
       chip(l, F.status === k, null, () => upd(G => { G.status = G.status === k ? "" : k; }))))]);
-  box.append(more);
+  if (SHOW.fMore) box.append(more);
   if (n) box.append(h("div", { class: "fopt" }, h("button", { type: "button", class: "link", onclick: () => { const g = F.group; F = F0(); F.y0 = YR[0]; F.y1 = YR[1]; F.group = g; saveF(); renderList(); } }, "сбросить фильтры")));
 }
 function miniLadder(it, rows) {
@@ -483,8 +557,8 @@ function renderList() {
     box.append(h("button", { type: "button", class: "ex" + (REVIEWED[it.id] ? " seen" : ""), "aria-current": String(cur && cur.id === it.id), onclick: () => openFromList(it.id) },
       h("span", { class: "tick", title: REVIEWED[it.id] ? "просмотрено " + REVIEWED[it.id] : "" }, REVIEWED[it.id] ? "✓" : ""),
       h("span", { class: "info" }, h("span", { class: "nm" }, it.name),
-        h("span", { class: "sm" }, [src[0] + (src.length > 1 ? ` +${src.length - 1}` : ""), wpn.join(", "), who].filter(Boolean).join(" · "))),
-      miniLadder(it, trainedRows(it).filter(([l]) => !who || l === m.roles[0]).map(([, r]) => r)),
+        SHOW.listSource || who ? h("span", { class: "sm" }, [SHOW.listSource ? src[0] + (src.length > 1 ? ` +${src.length - 1}` : "") : "", SHOW.listSource ? wpn.join(", ") : "", who].filter(Boolean).join(" · ")) : null),
+      SHOW.listLadder ? miniLadder(it, trainedRows(it).filter(([l]) => !who || l === m.roles[0]).map(([, r]) => r)) : null,
       o ? h("span", { class: "badge open", title: "открытых заметок" }, o) : null,
       d ? h("span", { class: "badge done", title: "разобранных заметок" }, "✓" + d) : null));
   }
@@ -510,26 +584,26 @@ function training(r, it, fieldNotesPrefix) {
   const ev = r.error_visibility || {};
   const regs = r.regulators || {};
   const fn = it.field_notes || {};
-  const regRows = Object.keys(V.regulators).map(k => {
+  const regRows = Object.keys(V.regulators).filter(k => SHOW.regs !== "applicable" || (regs[k] != null && regs[k] !== "n/a")).map(k => {
     const note = fn[(fieldNotesPrefix ? fieldNotesPrefix + "." : "") + k];
     return h("tr", null, h("th", null, V.regulators[k].label), h("td", { class: "v", title: regTip(k, regs[k]) }, regDots(k, regs[k])),
-      h("td", { class: "meta" }, refText(note || "")));
+      SHOW.regNotes ? h("td", { class: "meta" }, refText(note || "")) : null);
   });
   return [
     h("dl", { class: "kv" },
       h("dt", null, "Тренируем"), h("dd", null, aspects(r.focus, r.also)),
-      r.goal ? [h("dt", null, "Цель номера"), h("dd", null, V.partner_goals[r.goal] || r.goal)] : null,
-      r.success_visibility ? [h("dt", null, "Успех виден"), h("dd", null,   // упражнения на баланс и снятие барьеров: важно увидеть успех, а не ошибку
+      r.goal && SHOW.goal ? [h("dt", null, "Цель номера"), h("dd", null, V.partner_goals[r.goal] || r.goal)] : null,
+      r.success_visibility && SHOW.errorVis ? [h("dt", null, "Успех виден"), h("dd", null,   // упражнения на баланс и снятие барьеров: важно увидеть успех, а не ошибку
         lvl((r.success_visibility || {}).level, x => (V.error_visibility_levels[x] || x).split(" — ")[0]) || "",
         h("div", { class: (r.success_visibility.level || []).length ? "meta" : "" }, refText(r.success_visibility.how)))] : null,
       r.error_visibility || !r.success_visibility ? [
-        h("dt", null, "Ошибка видна"), h("dd", null, lvl(ev.level, x => (V.error_visibility_levels[x] || x).split(" — ")[0]) || "—", ev.how ? h("div", { class: "meta" }, refText(ev.how)) : null),
-        h("dt", null, "Критерий ошибки"), h("dd", null, listOrDash(r.error_criterion, c => (V.error_criteria[c] || c).split(":")[0]))] : null,
-      h("dt", null, "Зачёт"), h("dd", null, refText(r.scoring || "—")),
-      h("dt", null, "Воздействие на противника"), h("dd", null, listOrDash(r.opponent_victim, c => (V.characters[c] || {}).atlas || c)),
-      h("dt", null, "Сознательная нагрузка"), h("dd", null, listOrDash(r.engineer_load, l => V.engineer_load[l] || l))),
-    h("div", { class: "wrapx" }, h("table", { class: "t", style: "margin-top:8px" },
-      h("thead", null, h("tr", null, h("th", null, "Регулятор"), h("th", null, "0–3"), h("th", null, "Пояснение"))),
+        SHOW.errorVis ? [h("dt", null, "Ошибка видна"), h("dd", null, lvl(ev.level, x => (V.error_visibility_levels[x] || x).split(" — ")[0]) || "—", ev.how ? h("div", { class: "meta" }, refText(ev.how)) : null)] : null,
+        SHOW.errCrit ? [h("dt", null, "Критерий ошибки"), h("dd", null, listOrDash(r.error_criterion, c => (V.error_criteria[c] || c).split(":")[0]))] : null] : null,
+      SHOW.scoring ? [h("dt", null, "Зачёт"), h("dd", null, refText(r.scoring || "—"))] : null,
+      SHOW.analytics ? [h("dt", null, "Воздействие на противника"), h("dd", null, listOrDash(r.opponent_victim, c => (V.characters[c] || {}).atlas || c)),
+        h("dt", null, "Сознательная нагрузка"), h("dd", null, listOrDash(r.engineer_load, l => V.engineer_load[l] || l))] : null),
+    SHOW.regs === "none" || !regRows.length ? null : h("div", { class: "wrapx" }, h("table", { class: "t", style: "margin-top:8px" },
+      h("thead", null, h("tr", null, h("th", null, "Регулятор"), h("th", null, "0–3"), SHOW.regNotes ? h("th", null, "Пояснение") : null)),
       h("tbody", null, regRows))),
   ];
 }
@@ -542,8 +616,8 @@ function renderCard() {
     famNav(it),
     h("h2", null, it.name),
     h("p", { class: "ctx" }, weaponLine(it)),
-    ladderView(it),
-    h("div", { class: "sub" }, h("span", null, ((V.kinds || {})[it.kind || "training"] || {}).label || ""), h("span", null, STRUCT[it.structure] || it.structure),
+    SHOW.ladder ? ladderView(it) : null,
+    !SHOW.meta ? null : h("div", { class: "sub" }, h("span", null, ((V.kinds || {})[it.kind || "training"] || {}).label || ""), h("span", null, STRUCT[it.structure] || it.structure),
       h("span", null, "уверенность: " + (CONF[it.confidence] || it.confidence || "—")),
       h("span", null, periods.map(p => V.periods[p] || p).join(", ")),
       null),
@@ -581,24 +655,29 @@ function renderCard() {
         pr.source ? "Источник: " + ((SRC[pr.source] || {}).short || pr.source) : "",
         (pr.then || []).length ? [pr.source ? " · " : "", "Чем исправлять: ", refText(pr.then.join(", "))] : "") : null)))));
   }
-  if (footLine(it)) m.append(blk("Работа ног", null, h("div", { class: "desc" },   // по участнику в строке: «Ученик — …», «Тренер — …»
+  if (SHOW.footwork && footLine(it)) m.append(blk("Работа ног", null, h("div", { class: "desc" },   // по участнику в строке: «Ученик — …», «Тренер — …»
     footLine(it).replace(/^Работа ног: /, "").split("; ").map(s => h("p", { style: "margin:0 0 .3em" }, s[0].toUpperCase() + s.slice(1))))));
   const fm = it.form || {};
-  m.append(blk("Формы", "form",
-    h("div", { class: "meta", style: "margin-bottom:4px" }, "Описано в источнике: " + listOrDash(fm.described_in, f => (V.form[f] || {}).label || f)),
-    h("div", { class: "wrapx" }, h("table", { class: "t" }, h("tbody", null, Object.keys(V.form).map(f => {
+  const tlight = x => h("i", { class: "tl " + ({ good: "g", possible: "y", poor: "r" }[x.fit] || ""), title: V.form_fit[x.fit] || x.fit, "aria-label": V.form_fit[x.fit] || x.fit });
+  const fitForms = Object.keys(V.form).filter(f => ["good", "possible"].includes((fm[f] || {}).fit)).sort((a, b) => (fm[a].fit === "good" ? 0 : 1) - (fm[b].fit === "good" ? 0 : 1));
+  if (SHOW.forms === "line") m.append(blk("Формы", "form", fitForms.length ? h("div", { class: "formline" }, fitForms.map(f =>
+    h("span", { title: refText(fm[f].why || "").map(x => x.textContent ?? x).join("") }, tlight(fm[f]), FORM_SHORT[f] || V.form[f].label))) : h("p", { class: "meta" }, "—")));
+  else m.append(blk("Формы", "form",
+    SHOW.forms === "all" ? h("div", { class: "meta", style: "margin-bottom:4px" }, "Описано в источнике: " + listOrDash(fm.described_in, f => (V.form[f] || {}).label || f)) : null,
+    h("div", { class: "wrapx" }, h("table", { class: "t" }, h("tbody", null, (SHOW.forms === "fit" ? fitForms : Object.keys(V.form)).map(f => {
       const x = fm[f] || {};
       return h("tr", null, h("th", null, V.form[f].label), h("td", { class: "v", style: "text-align:center" }, x.fit ? h("i", { class: "tl " + ({ good: "g", possible: "y", poor: "r" }[x.fit] || ""), title: V.form_fit[x.fit] || x.fit, "aria-label": V.form_fit[x.fit] || x.fit }) : "—"), h("td", null, refText(x.why || "")));
     }))))));
   const fnr = (it.field_notes || {}).regulators;
-  m.append(blk("Регламентация, условия, риск", "properties", h("dl", { class: "kv" },
-    h("dt", null, "Регламентация"), h("dd", null, lvl(it.regulation, x => (V.regulation_levels[x] || x).split(" — ")[0])),
-    h("dt", null, "Условия"), h("dd", null, listOrDash(it.conditions, c => (V.conditions[c] || {}).label || c)),
-    h("dt", null, "Что должно уже работать"), h("dd", null, listOrDash(it.prerequisites, aspLabel)),
-    h("dt", null, "Требования боя"), h("dd", null, listOrDash(it.iv_requirements, x => x)),
-    h("dt", null, "Риск подмены"), h("dd", null, refText(it.substitution_risk || "—")),
-    fnr ? [h("dt", null, "О регуляторах"), h("dd", null, refText(fnr))] : null)));
-  m.append(blk("Комментарий", "comment", h("p", { class: "text" }, refText(it.comment || "—")),
+  const props = [
+    SHOW.analytics ? [h("dt", null, "Регламентация"), h("dd", null, lvl(it.regulation, x => (V.regulation_levels[x] || x).split(" — ")[0]))] : null,
+    SHOW.conditions && (SHOW.analytics || (it.conditions || []).length) ? [h("dt", null, "Условия"), h("dd", null, listOrDash(it.conditions, c => (V.conditions[c] || {}).label || c))] : null,
+    SHOW.prereq && (SHOW.analytics || (it.prerequisites || []).length) ? [h("dt", null, "Что должно уже работать"), h("dd", null, listOrDash(it.prerequisites, aspLabel))] : null,
+    SHOW.analytics ? [h("dt", null, "Требования боя"), h("dd", null, listOrDash(it.iv_requirements, x => x)),
+      h("dt", null, "Риск подмены"), h("dd", null, refText(it.substitution_risk || "—"))] : null,
+    fnr && SHOW.regNotes ? [h("dt", null, "О регуляторах"), h("dd", null, refText(fnr))] : null].filter(Boolean);
+  if (props.length) m.append(blk(SHOW.analytics ? "Регламентация, условия, риск" : "Подготовка и условия", "properties", h("dl", { class: "kv" }, props)));
+  if (SHOW.comment) m.append(blk("Комментарий", "comment", h("p", { class: "text" }, refText(it.comment || "—")),
     it.notes ? h("p", { class: "text meta" }, "Служебное: ", refText(it.notes)) : null,
     it.derived_from ? h("p", { class: "meta" }, "Откуда в атласе: ", refText(it.derived_from.join(", "))) : null));
   const exBox = h("div");
@@ -822,6 +901,9 @@ function onRoute() {   // «назад» / «вперёд» и переходы 
 }
 const goHome = e => { if (e) e.preventDefault(); if (cur || (isMobile() && document.body.dataset.view !== "about")) showAbout(true); };
 $("about-btn").onclick = goHome;
+$("view-btn").onclick = openView;
+$("viewpanel").onclick = e => { if (e.target === $("viewpanel")) closeView(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("viewpanel").hidden) closeView(); });
 $("home-link").href = listURL();
 $("home-link").onclick = goHome;
 window.addEventListener("popstate", onRoute);
@@ -861,6 +943,7 @@ document.addEventListener("keydown", e => {
     V = b.voc; SRC = b.sources; NOTES = b.notes || []; REVIEWED = b.reviewed || {}; ABOUT = b.about || "";
     ITEMS = b.items.sort((x, y) => String(x.family).localeCompare(String(y.family), "ru") || (x.family_order ?? 99) - (y.family_order ?? 99) || x.name.localeCompare(y.name, "ru"));
     byId = new Map(ITEMS.map(x => [x.id, x]));
+    loadView(); $("view-btn").hidden = !PUBLIC;
     initFilters();
     try { localStorage.removeItem("atlas-filters-open"); } catch (e) {}   // фильтры больше не сворачиваются
     const start = urlId();

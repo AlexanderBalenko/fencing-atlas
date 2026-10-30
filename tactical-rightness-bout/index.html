@@ -11,12 +11,12 @@
 <meta property="og:description" content="Учебный бой, где засчитываются не нанесённые уколы (они зависят от скорости, техники, точности), а созданные ситуации, в которых укол можно было бы выиграть при безукоризненной технике.">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=PT+Mono&display=swap">
-<link rel="stylesheet" href="atlas.css?v=4de4b9cfca">
+<link rel="stylesheet" href="atlas.css?v=119d92c6be">
 </head>
 <body>
 <aside>
   <header>
-    <div class="titlebar"><h1><a href="./" id="home-link" title="Главная: что это и как с ним работать">Атлас упражнений</a></h1><button type="button" id="about-btn" title="Главная: что это и как с ним работать" aria-label="Главная"><span aria-hidden="true">⌂</span> Главная</button><button type="button" id="theme" aria-label="Сменить тему" title="Сменить тему"></button></div>
+    <div class="titlebar"><h1><a href="./" id="home-link" title="Главная: что это и как с ним работать">Атлас упражнений</a></h1><button type="button" id="about-btn" title="Главная: что это и как с ним работать" aria-label="Главная"><span aria-hidden="true">⌂</span> Главная</button><button type="button" id="view-btn" title="Вид: что показывать в карточке" aria-label="Вид: что показывать" hidden>⚙</button><button type="button" id="theme" aria-label="Сменить тему" title="Сменить тему"></button></div>
     <div class="row"><input type="search" id="q" placeholder="Поиск: название, семейство, текст" aria-label="Поиск"></div>
     <div class="meta" id="count"></div>
     <div class="progress" aria-hidden="true"><span id="progress"></span></div>
@@ -42,6 +42,8 @@
   </div></details>
 </section>
 
+<div id="viewpanel" hidden role="dialog" aria-modal="true" aria-label="Вид: что показывать"><div class="vp" id="vp"></div></div>
+
 <nav id="tabs" aria-label="Экраны">
   <button type="button" data-v="about"><span class="ic" aria-hidden="true">⌂</span><span>Главная</span></button>
   <button type="button" data-v="filters"><span class="ic" aria-hidden="true">⚲</span><span>Фильтры<span class="cnt" id="tab-fcnt" hidden></span></span></button>
@@ -50,6 +52,6 @@
 </nav>
 
 <script src="data.js?v=101696f01d"></script>
-<script src="atlas.js?v=d403a48b73"></script>
+<script src="atlas.js?v=7cb15a3910"></script>
 </body>
 </html>
