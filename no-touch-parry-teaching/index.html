@@ -11,12 +11,12 @@
 <meta property="og:description" content="При разучивании контрзащит и финтов учитель не задевает ученика остриём, а лишь направлением своей рапиры даёт понять, что тот опоздал или не взял удар; колет, «принаравливаясь к ученику», скорость…">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=PT+Mono&display=swap">
-<link rel="stylesheet" href="atlas.css?v=d64e6035d1">
+<link rel="stylesheet" href="atlas.css?v=4de4b9cfca">
 </head>
 <body>
 <aside>
   <header>
-    <div class="titlebar"><h1>Атлас упражнений</h1><button type="button" id="about-btn" title="Об атласе: что это и как с ним работать" aria-label="Об атласе">?</button><button type="button" id="theme" aria-label="Сменить тему" title="Сменить тему"></button></div>
+    <div class="titlebar"><h1><a href="./" id="home-link" title="Главная: что это и как с ним работать">Атлас упражнений</a></h1><button type="button" id="about-btn" title="Главная: что это и как с ним работать" aria-label="Главная"><span aria-hidden="true">⌂</span> Главная</button><button type="button" id="theme" aria-label="Сменить тему" title="Сменить тему"></button></div>
     <div class="row"><input type="search" id="q" placeholder="Поиск: название, семейство, текст" aria-label="Поиск"></div>
     <div class="meta" id="count"></div>
     <div class="progress" aria-hidden="true"><span id="progress"></span></div>
@@ -43,12 +43,13 @@
 </section>
 
 <nav id="tabs" aria-label="Экраны">
+  <button type="button" data-v="about"><span class="ic" aria-hidden="true">⌂</span><span>Главная</span></button>
   <button type="button" data-v="filters"><span class="ic" aria-hidden="true">⚲</span><span>Фильтры<span class="cnt" id="tab-fcnt" hidden></span></span></button>
   <button type="button" data-v="list"><span class="ic" aria-hidden="true">☰</span><span>Список</span></button>
   <button type="button" data-v="card"><span class="ic" aria-hidden="true">▤</span><span>Карточка</span></button>
 </nav>
 
 <script src="data.js?v=101696f01d"></script>
-<script src="atlas.js?v=94e49676eb"></script>
+<script src="atlas.js?v=d403a48b73"></script>
 </body>
 </html>

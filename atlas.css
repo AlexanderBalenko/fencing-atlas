@@ -224,7 +224,7 @@ details.more > summary{cursor:pointer; font-size:.8rem; color:var(--accent)}
   body[data-view="list"] aside .fscroll{display:none}
   body[data-view="filters"] aside header{display:none}
   body[data-view="list"] #side{display:block; background:var(--bg)}
-  body[data-view="card"] main{display:block}
+  body[data-view="card"] main, body[data-view="about"] main{display:block}
   aside{padding:12px 0 0}
   aside header{padding:0 max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px))}
   aside .fscroll{padding:12px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px))}
@@ -298,6 +298,9 @@ details.more > summary{cursor:pointer; font-size:.8rem; color:var(--accent)}
 .about li{margin:0 0 .5em}
 .about li::marker{color:var(--accent); font-weight:600}
 .about .go{margin-top:18px; display:none}
-#about-btn{padding:2px 9px; font-size:.95rem; line-height:1.3}
+#about-btn{padding:2px 9px; font-size:.82rem; line-height:1.5; white-space:nowrap}
+.titlebar h1{min-width:0}
+.titlebar h1 a{color:inherit; text-decoration:none}
+.titlebar h1 a:hover{color:var(--accent)}
 @media (max-width: 700px){ .about .go{display:block} .about .go button{width:100%; padding:12px; font-size:1rem; border-radius:10px} #about-btn{padding:6px 12px} }
 @media (prefers-reduced-motion: reduce){ *{transition:none!important} }

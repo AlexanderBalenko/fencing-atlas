@@ -805,11 +805,13 @@ function renderAbout(box) {
   box.scrollTop = 0;
   try { localStorage.setItem("atlas-about-seen", "1"); } catch (e) {}
 }
+let LAST = null;   // упражнение, открытое до главной: вкладка «Карточка» вернёт к нему
 function showAbout(push) {
   if (push) history.pushState({ about: true }, "", listURL());
+  if (cur) LAST = cur;
   cur = null; document.title = "Атлас упражнений";
   renderCard(); renderNotes(); renderList();
-  if (isMobile()) showView("card");
+  if (isMobile()) showView("about");
 }
 function onRoute() {   // «назад» / «вперёд» и переходы по ссылкам
   const id = urlId();
@@ -818,7 +820,10 @@ function onRoute() {   // «назад» / «вперёд» и переходы 
   else if (!id && isMobile()) showView("list");   // «назад» из карточки
   else if (!id) showAbout(false);
 }
-$("about-btn").onclick = () => { if (cur || document.body.dataset.view !== "card") showAbout(true); };
+const goHome = e => { if (e) e.preventDefault(); if (cur || (isMobile() && document.body.dataset.view !== "about")) showAbout(true); };
+$("about-btn").onclick = goHome;
+$("home-link").href = listURL();
+$("home-link").onclick = goHome;
 window.addEventListener("popstate", onRoute);
 window.addEventListener("hashchange", onRoute);
 document.addEventListener("click", e => {   // ссылки на другие упражнения в тексте — без перезагрузки страницы
@@ -827,7 +832,9 @@ document.addEventListener("click", e => {   // ссылки на другие у
   e.preventDefault(); history.pushState(null, "", cardURL(a.dataset.id)); onRoute(); window.scrollTo(0, 0);
 });
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
-  if (b.dataset.v === "card" && cur && isMobile() && !atCard()) history.pushState(null, "", cardURL(cur.id));
+  if (b.dataset.v === "about") return goHome();
+  if (b.dataset.v === "card" && !cur && LAST) { history.pushState(null, "", cardURL(LAST.id)); openEx(LAST.id); }
+  else if (b.dataset.v === "card" && cur && isMobile() && !atCard()) history.pushState(null, "", cardURL(cur.id));
   showView(b.dataset.v);
 });
 $("fshow").onclick = () => showView("list");
