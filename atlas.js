@@ -946,6 +946,8 @@ document.addEventListener("keydown", e => {
     ITEMS = b.items.sort((x, y) => String(x.family).localeCompare(String(y.family), "ru") || (x.family_order ?? 99) - (y.family_order ?? 99) || x.name.localeCompare(y.name, "ru"));
     byId = new Map(ITEMS.map(x => [x.id, x]));
     loadView(); $("view-btn").hidden = $("tab-view").hidden = !PUBLIC;
+    // публичная версия: фоновый скрипт сохраняет атлас в телефоне — дальше он открывается и без интернета (build_web.py → sw.js)
+    if (PUBLIC && "serviceWorker" in navigator) navigator.serviceWorker.register(ROOT + "sw.js").catch(() => {});
     initFilters();
     try { localStorage.removeItem("atlas-filters-open"); } catch (e) {}   // фильтры больше не сворачиваются
     const start = urlId();
