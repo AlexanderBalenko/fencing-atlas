@@ -8,7 +8,7 @@ function setTheme(t, save) {
   if (save) try { localStorage.setItem("atlas-theme", t); } catch (e) {}
 }
 try { const t = localStorage.getItem("atlas-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
-let V, SRC, ITEMS = [], NOTES = [], REVIEWED = {}, byId = new Map(), cur = null, mode = "ex";
+let ABOUT = "", V, SRC, ITEMS = [], NOTES = [], REVIEWED = {}, byId = new Map(), cur = null, mode = "ex";
 const PUBLIC = !!window.ATLAS_DATA;   // публичная веб-версия: только чтение, без ссылок на оригинал
 const isMobile = () => window.matchMedia && matchMedia("(max-width: 700px)").matches;
 /* Адрес карточки. Локальный просмотрщик — «#id»; публичная версия — своя страница на каждое упражнение («…/id/»),
@@ -536,7 +536,7 @@ function training(r, it, fieldNotesPrefix) {
 function renderCard() {
   const it = cur, box = $("card"); box.innerHTML = "";
   const m = { append: (...xs) => box.append(...xs.flat().filter(x => x != null && x !== false)) };
-  if (!it) { m.append(h("p", { class: "empty" }, "Выберите упражнение слева.")); return; }
+  if (!it) { renderAbout(box); return; }
   const periods = [...new Set((it.sources || []).map(s => (SRC[s.source] || {}).period).filter(Boolean))];
   m.append(
     famNav(it),
@@ -793,11 +793,32 @@ setTheme(themeNow(), false);
 $("theme").onclick = () => setTheme(themeNow() === "dark" ? "light" : "dark", true);
 $("note-form").onsubmit = addNote;
 $("nt-text").onkeydown = e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(e); };
+/* Стартовая страница: на компьютере — в центре, пока не открыто упражнение; на телефоне — при первом заходе и по «?» */
+function renderAbout(box) {
+  const used = new Set(ITEMS.flatMap(x => (x.sources || []).map(s => s.source)));
+  const ys = [...used].map(k => (SRC[k] || {}).year).filter(Number.isFinite);
+  const sub = { items: ITEMS.length, sources: used.size, years: ys.length ? `${Math.min(...ys)}–${Math.max(...ys)}` : "" };
+  const art = h("article", { class: "about" });
+  art.innerHTML = (ABOUT || "<h1>Атлас упражнений</h1>").replace(/\{\{(\w+)\}\}/g, (m, k) => sub[k] ?? m);
+  art.append(h("div", { class: "go" }, h("button", { type: "button", class: "primary", onclick: () => showView("list") }, "К упражнениям")));
+  box.append(art);
+  box.scrollTop = 0;
+  try { localStorage.setItem("atlas-about-seen", "1"); } catch (e) {}
+}
+function showAbout(push) {
+  if (push) history.pushState({ about: true }, "", listURL());
+  cur = null; document.title = "Атлас упражнений";
+  renderCard(); renderNotes(); renderList();
+  if (isMobile()) showView("card");
+}
 function onRoute() {   // «назад» / «вперёд» и переходы по ссылкам
   const id = urlId();
   if (byId.has(id)) { if (!cur || cur.id !== id) openEx(id); if (isMobile()) showView("card"); }
+  else if (!id && (history.state || {}).about) showAbout(false);
   else if (!id && isMobile()) showView("list");   // «назад» из карточки
+  else if (!id) showAbout(false);
 }
+$("about-btn").onclick = () => { if (cur || document.body.dataset.view !== "card") showAbout(true); };
 window.addEventListener("popstate", onRoute);
 window.addEventListener("hashchange", onRoute);
 document.addEventListener("click", e => {   // ссылки на другие упражнения в тексте — без перезагрузки страницы
@@ -830,14 +851,16 @@ document.addEventListener("keydown", e => {
   try {
     const b = PUBLIC ? window.ATLAS_DATA : await api("/api/bootstrap");
     if (PUBLIC) { $("notes").hidden = true; document.querySelector(".progress").hidden = true; $("side").setAttribute("aria-label", "Упражнения"); }
-    V = b.voc; SRC = b.sources; NOTES = b.notes || []; REVIEWED = b.reviewed || {};
+    V = b.voc; SRC = b.sources; NOTES = b.notes || []; REVIEWED = b.reviewed || {}; ABOUT = b.about || "";
     ITEMS = b.items.sort((x, y) => String(x.family).localeCompare(String(y.family), "ru") || (x.family_order ?? 99) - (y.family_order ?? 99) || x.name.localeCompare(y.name, "ru"));
     byId = new Map(ITEMS.map(x => [x.id, x]));
     initFilters();
     try { localStorage.removeItem("atlas-filters-open"); } catch (e) {}   // фильтры больше не сворачиваются
     const start = urlId();
-    openEx(byId.has(start) ? start : ITEMS[0].id);
-    showView(byId.has(start) && isMobile() ? "card" : "list");
+    let seen = false; try { seen = localStorage.getItem("atlas-about-seen") === "1"; } catch (e) {}
+    if (byId.has(start)) { openEx(start); showView(isMobile() ? "card" : "list"); }
+    else if (isMobile() && seen) { cur = null; renderCard(); renderNotes(); renderList(); showView("list"); }
+    else { showView("list"); showAbout(false); }   // стартовая страница: на телефоне — при первом заходе
   } catch (e) {
     $("card").innerHTML = ""; $("card").append(h("p", { class: "warn" }, "Не удалось загрузить данные: " + e.message + (PUBLIC ? "" : ". Запущен ли review_server.py?")));
   }
