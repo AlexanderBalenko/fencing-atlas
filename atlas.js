@@ -83,7 +83,7 @@ function renderViewPanel() {
   }
 }
 function openView() { renderViewPanel(); $("viewpanel").hidden = false; const b = $("vp").querySelector("button[aria-pressed='true']") || $("vp").querySelector("button"); if (b) b.focus(); }
-function closeView() { $("viewpanel").hidden = true; $("view-btn").focus(); }
+function closeView() { $("viewpanel").hidden = true; (isMobile() ? $("tab-view") : $("view-btn")).focus(); }
 /* Адрес карточки. Локальный просмотрщик — «#id»; публичная версия — своя страница на каждое упражнение («…/id/»),
    корень сайта — document.baseURI (на страницах упражнений стоит <base href="../">). */
 const ROOT = new URL(".", document.baseURI).pathname;
@@ -916,6 +916,7 @@ document.addEventListener("click", e => {   // ссылки на другие у
 });
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   if (b.dataset.v === "about") return goHome();
+  if (b.dataset.v === "view") return openView();   // настройки вида — шторкой поверх текущего экрана
   if (b.dataset.v === "card" && !cur && LAST) { history.pushState(null, "", cardURL(LAST.id)); openEx(LAST.id); }
   else if (b.dataset.v === "card" && cur && isMobile() && !atCard()) history.pushState(null, "", cardURL(cur.id));
   showView(b.dataset.v);
@@ -944,7 +945,7 @@ document.addEventListener("keydown", e => {
     V = b.voc; SRC = b.sources; NOTES = b.notes || []; REVIEWED = b.reviewed || {}; ABOUT = b.about || "";
     ITEMS = b.items.sort((x, y) => String(x.family).localeCompare(String(y.family), "ru") || (x.family_order ?? 99) - (y.family_order ?? 99) || x.name.localeCompare(y.name, "ru"));
     byId = new Map(ITEMS.map(x => [x.id, x]));
-    loadView(); $("view-btn").hidden = !PUBLIC;
+    loadView(); $("view-btn").hidden = $("tab-view").hidden = !PUBLIC;
     initFilters();
     try { localStorage.removeItem("atlas-filters-open"); } catch (e) {}   // фильтры больше не сворачиваются
     const start = urlId();
