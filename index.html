@@ -164,7 +164,7 @@ hr.hdiv{border:0; height:1px; background:linear-gradient(90deg, var(--accent), v
 .ex .tick{color:var(--done); font-weight:600; width:1em; flex:none}
 .progress{height:4px; background:var(--soft); border-radius:2px; overflow:hidden}
 .fbox{border:1px solid var(--line); border-radius:8px; background:var(--surface)}
-.fbox > summary{cursor:pointer; padding:6px 10px; font-weight:600; font-size:.9rem}
+.fbox > .fhead{padding:6px 10px; font-weight:600; font-size:.9rem}
 #filters{padding:0 10px 10px}
 .fh{font-size:.76rem; color:var(--muted); margin:10px 0 5px; font-weight:600}
 .fopt{display:flex; flex-wrap:wrap; gap:2px 12px; font-size:.8rem; margin-top:5px; align-items:center}
@@ -239,8 +239,7 @@ details.more > summary{cursor:pointer; font-size:.8rem; color:var(--accent)}
   #q{font-size:16px; padding:9px 12px}
   #theme{padding:6px 12px}
   .fbox{border:0; background:none}
-  .fbox > summary{padding:4px 0 8px; font-size:1.05rem; pointer-events:none; list-style:none}
-  .fbox > summary::-webkit-details-marker{display:none}
+  .fbox > .fhead{padding:4px 0 8px; font-size:1.05rem}
   #filters{padding:0}
   .fh{font-size:.82rem; margin:16px 0 7px}
   .chips{gap:6px}
@@ -309,7 +308,7 @@ details.more > summary{cursor:pointer; font-size:.8rem; color:var(--accent)}
     <div class="meta" id="count"></div>
     <div class="progress" aria-hidden="true"><span id="progress"></span></div>
   </header>
-  <div class="fscroll"><details class="fbox" id="fbox" open><summary>Фильтры <span class="meta" id="fsum"></span></summary><div id="filters"></div></details></div>
+  <div class="fscroll"><div class="fbox" id="fbox"><div class="fhead">Фильтры <span class="meta" id="fsum"></span></div><div id="filters"></div></div></div>
   <div class="fshow"><button type="button" class="primary" id="fshow">Показать</button></div>
 </aside>
 
@@ -1153,8 +1152,7 @@ document.addEventListener("keydown", e => {
     ITEMS = b.items.sort((x, y) => String(x.family).localeCompare(String(y.family), "ru") || (x.family_order ?? 99) - (y.family_order ?? 99) || x.name.localeCompare(y.name, "ru"));
     byId = new Map(ITEMS.map(x => [x.id, x]));
     initFilters();
-    try { $("fbox").open = localStorage.getItem("atlas-filters-open") !== "0"; } catch (e) { $("fbox").open = true; }
-    $("fbox").ontoggle = () => { try { localStorage.setItem("atlas-filters-open", $("fbox").open ? "1" : "0"); } catch (e) {} };
+    try { localStorage.removeItem("atlas-filters-open"); } catch (e) {}   // фильтры больше не сворачиваются
     const start = decodeURIComponent(location.hash.slice(1));
     openEx(byId.has(start) ? start : ITEMS[0].id);
     showView(byId.has(start) && isMobile() ? "card" : "list");
