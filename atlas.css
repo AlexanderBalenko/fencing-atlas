@@ -93,10 +93,10 @@ dl.kv{display:grid; grid-template-columns:minmax(150px, max-content) 1fr; gap:4p
 dl.kv dt{color:var(--muted)}
 dl.kv dd{margin:0; min-width:0}
 .asp{display:flex; flex-direction:column; gap:1px}
-.asp .f::before, .asp .a::before{content:""; display:inline-block; width:.72em; height:.72em; border-radius:50%; border:1.5px solid var(--hit);
+.asp .f::before, .asp .a::before{content:""; display:inline-block; width:.72em; height:.72em; border-radius:50%; border:1.5px solid var(--accent);
   box-sizing:border-box; margin-right:7px; vertical-align:-.02em}
-.asp .f::before{background:var(--hit)}
-.asp .a::before{background:linear-gradient(90deg, var(--hit) 50%, transparent 50%)}
+.asp .f::before{background:var(--accent)}
+.asp .a::before{background:linear-gradient(90deg, var(--accent) 50%, transparent 50%)}
 .asp .ch{color:var(--muted)}
 table.t{border-collapse:collapse; font-size:.86rem; width:100%}
 table.t th, table.t td{border-bottom:1px solid var(--line); padding:4px 8px; text-align:left; vertical-align:top}
