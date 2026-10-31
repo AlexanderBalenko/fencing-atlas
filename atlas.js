@@ -328,7 +328,7 @@ const notesOf = id => NOTES.filter(n => n.id === id);
 
 /* ---------- список ---------- */
 /* ---------- фильтры (2026-10-30): уровень, что развиваем, формат, год, оружие, ещё ---------- */
-const FORM_SHORT = { individual: "урок", group: "в парах", "coach-line": "строй", solo: "соло", "solo-lights": "Reaction Lights", sparring: "вольный бой", "task-sparring": "бой с заданием" };
+const FORM_SHORT = { individual: "индив", group: "группа", "coach-line": "строй", solo: "соло", "solo-lights": "Reaction Lights", sparring: "вольный бой", "task-sparring": "бой с заданием" };
 const TYPES = { training: "развивающие", diagnostic: "проверочные", psyche: "психологические", bout: "бои" };
 const FKEY = "atlas-filters-v2";   // v2: край шкалы годов хранится как «без границы» (null), а не как год
 const LAD_SHORT = { atomic: "атом.", coordinated: "согл.", launch: "запуск", recognition: "узнав.", control: "упр. боем", psyche: "психика" };
