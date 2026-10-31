@@ -33,7 +33,8 @@ const VIEW_OPTS = [
     ["footwork", "Работа ног", null],
     ["prereq", "Что должно уже работать", null],
     ["conditions", "Условия", "особые условия: с закрытыми глазами, смена партнёров…"],
-    ["comment", "Комментарий", "обоснование разметки"]]],
+    ["comment", "Комментарий", "обоснование разметки"],
+    ["discussion", "Обсуждение", "вопросы и замечания посетителей под карточкой"]]],
   ["Список и фильтры", [
     ["listLadder", "Мини-лестница в списке", null],
     ["listSource", "Источник и оружие в списке", null],
@@ -43,15 +44,15 @@ const VIEW_OPTS = [
 const VIEW_PRESETS = {
   short: { label: "Коротко", hint: "суть упражнения",
     v: { ladder: false, legend: false, meta: false, bolt: false, goal: false, errorVis: false, errCrit: false, scoring: false, analytics: false,
-         regs: "none", regNotes: false, forms: "line", footwork: true, prereq: false, conditions: false, comment: false,
+         regs: "none", regNotes: false, forms: "line", footwork: true, prereq: false, conditions: false, comment: false, discussion: true,
          listLadder: false, listSource: true, fYear: false, fMore: false } },
   coach: { label: "Тренеру", hint: "суть и как дозировать",
     v: { ladder: true, legend: false, meta: false, bolt: true, goal: true, errorVis: true, errCrit: false, scoring: true, analytics: false,
-         regs: "applicable", regNotes: false, forms: "fit", footwork: true, prereq: true, conditions: true, comment: false,
+         regs: "applicable", regNotes: false, forms: "fit", footwork: true, prereq: true, conditions: true, comment: false, discussion: true,
          listLadder: true, listSource: true, fYear: true, fMore: true } },
   full: { label: "Полностью", hint: "вся разметка",
     v: { ladder: true, legend: true, meta: true, bolt: true, goal: true, errorVis: true, errCrit: true, scoring: true, analytics: true,
-         regs: "all", regNotes: true, forms: "all", footwork: true, prereq: true, conditions: true, comment: true,
+         regs: "all", regNotes: true, forms: "all", footwork: true, prereq: true, conditions: true, comment: true, discussion: true,
          listLadder: true, listSource: true, fYear: true, fMore: true } },
 };
 const VKEY = "atlas-view-v1";
@@ -559,6 +560,7 @@ function renderList() {
       h("span", { class: "info" }, h("span", { class: "nm" }, it.name),
         SHOW.listSource || who ? h("span", { class: "sm" }, [SHOW.listSource ? src[0] + (src.length > 1 ? ` +${src.length - 1}` : "") : "", SHOW.listSource ? wpn.join(", ") : "", who].filter(Boolean).join(" · ")) : null),
       SHOW.listLadder ? miniLadder(it, trainedRows(it).filter(([l]) => !who || l === m.roles[0]).map(([, r]) => r)) : null,
+      SHOW.discussion && CCOUNT[it.id] ? h("span", { class: "cmt", title: "комментариев в обсуждении" }, "💬 " + CCOUNT[it.id]) : null,
       o ? h("span", { class: "badge open", title: "открытых заметок" }, o) : null,
       d ? h("span", { class: "badge done", title: "разобранных заметок" }, "✓" + d) : null));
   }
@@ -689,8 +691,84 @@ function renderCard() {
     })),
     PUBLIC ? null : (it.excerpts || []).length ? h("button", { type: "button", onclick: e => loadExcerpts(it.id, exBox, e.currentTarget) }, "Показать полный текст источников") : h("p", { class: "meta" }, "Адресов фрагментов нет."),
     exBox));
+  if (PUBLIC && SHOW.discussion) m.append(discussionBlock(it));
   m.append(revbar(it, true));   // те же кнопки внизу — чтобы не листать наверх
   box.scrollTop = 0;
+}
+/* ---------- обсуждение карточки (публичная версия): Cloudflare Worker + невидимый Turnstile ---------- */
+const COMMENTS = { api: "https://fencing-atlas-comments.balenko.workers.dev", sitekey: "0x4AAAAAAFt65TCDXGX1G62e" };
+let CCOUNT = {};
+async function loadCounts() {
+  try { CCOUNT = await fetch(COMMENTS.api + "/counts").then(r => r.json()); renderList(); } catch (e) {}
+}
+let TS = null;   // загрузка скрипта Turnstile — один раз, по требованию
+function turnstileReady() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  if (!TS) TS = new Promise((ok, no) => {
+    const sc = document.createElement("script");
+    sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"; sc.async = true;
+    sc.onload = () => ok(window.turnstile); sc.onerror = () => { TS = null; no(new Error("нет связи с защитой от спама")); };
+    document.head.append(sc);
+  });
+  return TS;
+}
+async function turnstileToken(holder) {   // невидимая проверка: токен на одну отправку
+  const ts = await turnstileReady();
+  return new Promise((ok, no) => {
+    holder.innerHTML = "";
+    const id = ts.render(holder, { sitekey: COMMENTS.sitekey, size: "invisible", callback: t => { ok(t); setTimeout(() => ts.remove(id), 0); },
+      "error-callback": () => no(new Error("проверка «не робот» не удалась")), "timeout-callback": () => no(new Error("проверка «не робот» не успела")) });
+  });
+}
+const fmtDate = s => { const d = new Date(String(s).replace(" ", "T") + "Z"); return isNaN(d) ? "" : d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }); };
+function discussionBlock(it) {
+  const list = h("div", { class: "clist" }, h("p", { class: "meta" }, "Загружаю…"));
+  const msg = h("div", { class: "msg" }), holder = h("div");
+  const ta = h("textarea", { placeholder: "Вопрос, замечание, опыт применения…", "aria-label": "Текст комментария", maxlength: "2000" });
+  let saved = ""; try { saved = localStorage.getItem("atlas-cname") || ""; } catch (e) {}
+  const nm = h("input", { type: "text", placeholder: "Имя (необязательно)", "aria-label": "Имя", maxlength: "60", value: saved });
+  let parent = null;
+  const replying = h("div", { class: "replying", hidden: true });
+  const setParent = c => {
+    parent = c ? c.id : null; replying.hidden = !c; replying.innerHTML = "";
+    if (c) { replying.append("Ответ для: " + (c.name || "Гость") + " ", h("button", { type: "button", class: "link", onclick: () => setParent(null) }, "отменить")); ta.focus(); }
+  };
+  const draw = rows => {
+    list.innerHTML = "";
+    if (!rows.length) { list.append(h("p", { class: "meta" }, "Пока никто не писал. Вопрос, найденная неточность или опыт применения — пишите первым.")); return; }
+    const kids = {}; rows.filter(c => c.parent).forEach(c => (kids[c.parent] = kids[c.parent] || []).push(c));
+    const one = (c, reply) => h("div", { class: "cm" + (reply ? " reply" : "") },
+      h("div", { class: "top" }, h("span", { class: "who" }, c.author ? "Автор атласа" : (c.name || "Гость")), c.author ? h("span", { class: "auth" }, "автор") : null,
+        h("span", null, fmtDate(c.created)), reply ? null : h("button", { type: "button", class: "link rep", onclick: () => setParent(c) }, "ответить")),
+      h("p", { class: "txt" }, c.body));
+    rows.filter(c => !c.parent || !rows.some(p => p.id === c.parent)).forEach(c => { list.append(one(c, false)); (kids[c.id] || []).forEach(k => list.append(one(k, true))); });
+  };
+  const load = async () => {
+    try { const rows = await fetch(COMMENTS.api + "/comments?card=" + encodeURIComponent(it.id)).then(r => r.json()); if (cur && cur.id === it.id) draw(rows); }
+    catch (e) { list.innerHTML = ""; list.append(h("p", { class: "meta" }, navigator.onLine === false ? "Обсуждение видно, когда есть интернет." : "Обсуждение сейчас не загрузилось.")); }
+  };
+  const btn = h("button", { type: "submit", class: "primary" }, "Отправить");
+  const form = h("form", { onsubmit: async e => {
+    e.preventDefault();
+    const body = ta.value.trim(); if (body.length < 2) { ta.focus(); return; }
+    btn.disabled = true; msg.className = "msg"; msg.textContent = "Отправляю…";
+    try {
+      const token = await turnstileToken(holder);
+      const r = await fetch(COMMENTS.api + "/comments", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card: it.id, name: nm.value.trim(), body, parent, token }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "не отправилось");
+      try { localStorage.setItem("atlas-cname", nm.value.trim()); } catch (e2) {}
+      ta.value = ""; setParent(null); msg.textContent = "Опубликовано.";
+      CCOUNT[it.id] = (CCOUNT[it.id] || 0) + 1;
+      await load();
+    } catch (err) { msg.className = "msg err"; msg.textContent = "Не отправилось: " + err.message; }
+    finally { btn.disabled = false; }
+  } }, replying, ta, h("div", { class: "row" }, nm, btn), msg, holder,
+    h("div", { class: "fine" }, "Комментарии видны всем посетителям. Защита от спама — Cloudflare Turnstile (",
+      h("a", { href: "https://www.cloudflare.com/turnstile-privacy-policy/", target: "_blank", rel: "noopener" }, "политика конфиденциальности"), ")."));
+  load();
+  return h("section", { class: "blk disc", id: "discussion" }, h("h3", null, "Обсуждение"), list, form);
 }
 function revbar(it, bottom) {
   return h("div", { class: "revbar" + (bottom ? " bottom" : "") },
@@ -947,6 +1025,7 @@ document.addEventListener("keydown", e => {
     byId = new Map(ITEMS.map(x => [x.id, x]));
     loadView(); $("view-btn").hidden = $("tab-view").hidden = !PUBLIC;
     // публичная версия: фоновый скрипт сохраняет атлас в телефоне — дальше он открывается и без интернета (build_web.py → sw.js)
+    if (PUBLIC) loadCounts();
     if (PUBLIC && "serviceWorker" in navigator) navigator.serviceWorker.register(ROOT + "sw.js").catch(() => {});
     initFilters();
     try { localStorage.removeItem("atlas-filters-open"); } catch (e) {}   // фильтры больше не сворачиваются

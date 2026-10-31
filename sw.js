@@ -1,6 +1,6 @@
 /* Атлас упражнений: работа без интернета. Версия меняется с каждой сборкой — старое сохранённое удаляется. */
-const VERSION = "atlas-625e881471";
-const CORE = ["./", "card.html", "atlas.css?v=bdd992edf4", "atlas.js?v=69d686cbf4", "data.js?v=5d96b3552a", "manifest.webmanifest", "assets/apple-touch-icon.png", "assets/emblem.png", "assets/favicon.png", "assets/icon-192.png", "assets/icon-512.png"];
+const VERSION = "atlas-9ddba9d2ef";
+const CORE = ["./", "card.html", "atlas.css?v=1311573e57", "atlas.js?v=3a68979500", "data.js?v=5d96b3552a", "manifest.webmanifest", "assets/apple-touch-icon.png", "assets/emblem.png", "assets/favicon.png", "assets/icon-192.png", "assets/icon-512.png"];
 const SCOPE = new URL("./", self.registration.scope);
 const abs = p => new URL(p, SCOPE).href;
 self.addEventListener("install", e => {
@@ -14,6 +14,8 @@ const keep = (req, res) => { if (res && (res.ok || res.type === "opaque")) { con
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
+  const host = new URL(req.url).hostname;   // чужие адреса (обсуждение, Turnstile) — мимо сохранённого, кроме шрифтов
+  if (new URL(req.url).origin !== self.location.origin && !/^fonts\.(googleapis|gstatic)\.com$/.test(host)) return;
   if (req.mode === "navigate") {
     e.respondWith(fetch(req).then(res => keep(req, res)).catch(async () => {
       const c = await caches.open(VERSION);
