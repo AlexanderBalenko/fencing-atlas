@@ -209,7 +209,7 @@ function ladderView(it) {
     if (m.length) marks.push(h("span", { class: "lmarks" }, lab ? h("b", { class: "rl" }, lab) : null, ...m));
   }
   return h("div", { class: "ladwrap" }, grid,
-    h("div", { class: "lfoot" }, it.technique === "none" ? h("span", { class: "lmark f", title: "Упражнение без фехтовальной техники: ступени ниже фокуса не требуются" }, "техники фехтования не требует") : null,
+    h("div", { class: "lfoot" }, h("span", null, "Лестница", helpBtn("ladder")), it.technique === "none" ? h("span", { class: "lmark f", title: "Упражнение без фехтовальной техники: ступени ниже фокуса не требуются" }, "техники фехтования не требует") : null,
       marks.length ? [h("span", null, "Вне лестницы:"), ...marks] : null,
       !SHOW.legend ? null : h("span", { class: "llegend" },
         h("span", null, h("i", { class: "sw f" }), "тренирует (фокус)"),
@@ -451,14 +451,14 @@ function renderFilters() {
   $("fsum").textContent = n ? `· включено ${n}` : "";
   // уровень
   const cntL = i => countIf("", Object.assign({}, F, { lvl: i }));
-  box.append(h("div", { class: "fh" }, "Уровень: уже уверенно стоит"),
+  box.append(h("div", { class: "fh" }, "Уровень: уже уверенно стоит", helpBtn("f:level")),
     ladPick(i => i <= F.lvl ? "k" : "", i => upd(G => { G.lvl = G.lvl === i ? -1 : i; })),
     F.lvl >= 0 ? h("div", { class: "fopt" },
       h("label", null, h("input", { type: "radio", name: "lm", checked: F.lvl >= 0 && F.lvlMode === "near", onchange: () => upd(G => { G.lvlMode = "near"; }) }), " закрепление и следующая ступень"),
       h("label", null, h("input", { type: "radio", name: "lm", checked: F.lvlMode === "next", onchange: () => upd(G => { G.lvlMode = "next"; }) }), " только следующая")) :
       h("div", { class: "fopt meta" }, "Кликни по ступени, которую группа уже умеет"));
   // что развиваем
-  box.append(h("div", { class: "fh" }, "Что развиваем"),
+  box.append(h("div", { class: "fh" }, "Что развиваем", helpBtn("f:dev")),
     ladPick(i => F.steps.includes(i) ? "t" : "", i => upd(G => { G.steps = tog(G.steps, i); G.asps = G.asps.filter(a => G.steps.includes(STEP[a])); })));
   if (F.steps.length) {
     const wrap = h("div", { class: "chips" });
@@ -475,7 +475,7 @@ function renderFilters() {
   const fw = h("div", { class: "chips" });
   for (const f of Object.keys(V.form)) fw.append(chip(FORM_SHORT[f] || f, F.forms.includes(f), ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, { forms: [f] })) ? 1 : 0), 0),
     () => upd(G => { G.forms = tog(G.forms, f); }), V.form[f].label));
-  box.append(h("div", { class: "fh" }, "Формат"), fw, h("div", { class: "fopt" },
+  box.append(h("div", { class: "fh" }, "Формат", helpBtn("f:form")), fw, h("div", { class: "fopt" },
     h("label", null, h("input", { type: "checkbox", checked: F.possible, onchange: e => upd(G => { G.possible = e.target.checked; }) }), " и «с оговорками» — ниже в списке")));
   if (SHOW.fYear) {   // год (раздел можно спрятать в настройках вида)
   const lab = h("span", { class: "meta" }, `${F.y0} — ${F.y1}`);
@@ -588,24 +588,24 @@ function training(r, it, fieldNotesPrefix) {
   const fn = it.field_notes || {};
   const regRows = Object.keys(V.regulators).filter(k => SHOW.regs !== "applicable" || (regs[k] != null && regs[k] !== "n/a")).map(k => {
     const note = fn[(fieldNotesPrefix ? fieldNotesPrefix + "." : "") + k];
-    return h("tr", null, h("th", null, V.regulators[k].label), h("td", { class: "v", title: regTip(k, regs[k]) }, regDots(k, regs[k])),
+    return h("tr", null, h("th", null, V.regulators[k].label, helpBtn("reg:" + k)), h("td", { class: "v", title: regTip(k, regs[k]) }, regDots(k, regs[k])),
       SHOW.regNotes ? h("td", { class: "meta" }, refText(note || "")) : null);
   });
   return [
     h("dl", { class: "kv" },
-      h("dt", null, "Тренируем"), h("dd", null, aspects(r.focus, r.also)),
-      r.goal && SHOW.goal ? [h("dt", null, "Цель номера"), h("dd", null, V.partner_goals[r.goal] || r.goal)] : null,
-      r.success_visibility && SHOW.errorVis ? [h("dt", null, "Успех виден"), h("dd", null,   // упражнения на баланс и снятие барьеров: важно увидеть успех, а не ошибку
+      h("dt", null, "Тренируем", helpBtn("train")), h("dd", null, aspects(r.focus, r.also)),
+      r.goal && SHOW.goal ? [h("dt", null, "Цель номера", helpBtn("goal")), h("dd", null, V.partner_goals[r.goal] || r.goal)] : null,
+      r.success_visibility && SHOW.errorVis ? [h("dt", null, "Успех виден", helpBtn("errvis")), h("dd", null,   // упражнения на баланс и снятие барьеров: важно увидеть успех, а не ошибку
         lvl((r.success_visibility || {}).level, x => (V.error_visibility_levels[x] || x).split(" — ")[0]) || "",
         h("div", { class: (r.success_visibility.level || []).length ? "meta" : "" }, refText(r.success_visibility.how)))] : null,
       r.error_visibility || !r.success_visibility ? [
-        SHOW.errorVis ? [h("dt", null, "Ошибка видна"), h("dd", null, lvl(ev.level, x => (V.error_visibility_levels[x] || x).split(" — ")[0]) || "—", ev.how ? h("div", { class: "meta" }, refText(ev.how)) : null)] : null,
-        SHOW.errCrit ? [h("dt", null, "Критерий ошибки"), h("dd", null, listOrDash(r.error_criterion, c => (V.error_criteria[c] || c).split(":")[0]))] : null] : null,
-      SHOW.scoring ? [h("dt", null, "Зачёт"), h("dd", null, refText(r.scoring || "—"))] : null,
-      SHOW.analytics ? [h("dt", null, "Воздействие на противника"), h("dd", null, listOrDash(r.opponent_victim, c => (V.characters[c] || {}).atlas || c)),
-        h("dt", null, "Сознательная нагрузка"), h("dd", null, listOrDash(r.engineer_load, l => V.engineer_load[l] || l))] : null),
+        SHOW.errorVis ? [h("dt", null, "Ошибка видна", helpBtn("errvis")), h("dd", null, lvl(ev.level, x => (V.error_visibility_levels[x] || x).split(" — ")[0]) || "—", ev.how ? h("div", { class: "meta" }, refText(ev.how)) : null)] : null,
+        SHOW.errCrit ? [h("dt", null, "Критерий ошибки", helpBtn("errcrit")), h("dd", null, listOrDash(r.error_criterion, c => (V.error_criteria[c] || c).split(":")[0]))] : null] : null,
+      SHOW.scoring ? [h("dt", null, "Зачёт", helpBtn("scoring")), h("dd", null, refText(r.scoring || "—"))] : null,
+      SHOW.analytics ? [h("dt", null, "Воздействие на противника", helpBtn("victim")), h("dd", null, listOrDash(r.opponent_victim, c => (V.characters[c] || {}).atlas || c)),
+        h("dt", null, "Сознательная нагрузка", helpBtn("load")), h("dd", null, listOrDash(r.engineer_load, l => V.engineer_load[l] || l))] : null),
     SHOW.regs === "none" || !regRows.length ? null : h("div", { class: "wrapx" }, h("table", { class: "t", style: "margin-top:8px" },
-      h("thead", null, h("tr", null, h("th", null, "Регулятор"), h("th", null, "0–3"), SHOW.regNotes ? h("th", null, "Пояснение") : null)),
+      h("thead", null, h("tr", null, h("th", null, "Регулятор", helpBtn("regs")), h("th", null, "0–3"), SHOW.regNotes ? h("th", null, "Пояснение") : null)),
       h("tbody", null, regRows))),
   ];
 }
@@ -662,9 +662,9 @@ function renderCard() {
   const fm = it.form || {};
   const tlight = x => h("i", { class: "tl " + ({ good: "g", possible: "y", poor: "r" }[x.fit] || ""), title: V.form_fit[x.fit] || x.fit, "aria-label": V.form_fit[x.fit] || x.fit });
   const fitForms = Object.keys(V.form).filter(f => ["good", "possible"].includes((fm[f] || {}).fit)).sort((a, b) => (fm[a].fit === "good" ? 0 : 1) - (fm[b].fit === "good" ? 0 : 1));
-  if (SHOW.forms === "line") m.append(blk("Формы", "form", fitForms.length ? h("div", { class: "formline" }, fitForms.map(f =>
+  if (SHOW.forms === "line") m.append(blk(["Формы", helpBtn("forms")], "form", fitForms.length ? h("div", { class: "formline" }, fitForms.map(f =>
     h("span", { title: refText(fm[f].why || "").map(x => x.textContent ?? x).join("") }, tlight(fm[f]), FORM_SHORT[f] || V.form[f].label))) : h("p", { class: "meta" }, "—")));
-  else m.append(blk("Формы", "form",
+  else m.append(blk(["Формы", helpBtn("forms")], "form",
     SHOW.forms === "all" ? h("div", { class: "meta", style: "margin-bottom:4px" }, "Описано в источнике: " + listOrDash(fm.described_in, f => (V.form[f] || {}).label || f)) : null,
     h("div", { class: "wrapx" }, h("table", { class: "t" }, h("tbody", null, (SHOW.forms === "fit" ? fitForms : Object.keys(V.form)).map(f => {
       const x = fm[f] || {};
@@ -672,11 +672,11 @@ function renderCard() {
     }))))));
   const fnr = (it.field_notes || {}).regulators;
   const props = [
-    SHOW.analytics ? [h("dt", null, "Регламентация"), h("dd", null, lvl(it.regulation, x => (V.regulation_levels[x] || x).split(" — ")[0]))] : null,
-    SHOW.conditions && (SHOW.analytics || (it.conditions || []).length) ? [h("dt", null, "Условия"), h("dd", null, listOrDash(it.conditions, c => (V.conditions[c] || {}).label || c))] : null,
-    SHOW.prereq && (SHOW.analytics || (it.prerequisites || []).length) ? [h("dt", null, "Что должно уже работать"), h("dd", null, listOrDash(it.prerequisites, aspLabel))] : null,
-    SHOW.analytics ? [h("dt", null, "Требования боя"), h("dd", null, listOrDash(it.iv_requirements, x => x)),
-      h("dt", null, "Риск подмены"), h("dd", null, refText(it.substitution_risk || "—"))] : null,
+    SHOW.analytics ? [h("dt", null, "Регламентация", helpBtn("regulation")), h("dd", null, lvl(it.regulation, x => (V.regulation_levels[x] || x).split(" — ")[0]))] : null,
+    SHOW.conditions && (SHOW.analytics || (it.conditions || []).length) ? [h("dt", null, "Условия", helpBtn("conditions")), h("dd", null, listOrDash(it.conditions, c => (V.conditions[c] || {}).label || c))] : null,
+    SHOW.prereq && (SHOW.analytics || (it.prerequisites || []).length) ? [h("dt", null, "Что должно уже работать", helpBtn("prereq")), h("dd", null, listOrDash(it.prerequisites, aspLabel))] : null,
+    SHOW.analytics ? [h("dt", null, "Требования боя", helpBtn("ivreq")), h("dd", null, listOrDash(it.iv_requirements, x => x)),
+      h("dt", null, "Риск подмены", helpBtn("subst")), h("dd", null, refText(it.substitution_risk || "—"))] : null,
     fnr && SHOW.regNotes ? [h("dt", null, "О регуляторах"), h("dd", null, refText(fnr))] : null].filter(Boolean);
   if (props.length) m.append(blk(SHOW.analytics ? "Регламентация, условия, риск" : "Подготовка и условия", "properties", h("dl", { class: "kv" }, props)));
   if (SHOW.comment) m.append(blk("Комментарий", "comment", h("p", { class: "text" }, refText(it.comment || "—")),
@@ -770,6 +770,77 @@ function discussionBlock(it) {
   load();
   return h("section", { class: "blk disc", id: "discussion" }, h("h3", null, "Обсуждение"), list, form);
 }
+/* ---------- быстрая справка: «?» у параметра → короткое объяснение; шкалы и определения — из словаря ---------- */
+const capital = t => t ? t[0].toUpperCase() + t.slice(1) : t;
+const liKV = (k, v) => h("li", null, h("span", { class: "k" }, k), v);
+const lvlList = obj => h("ul", null, Object.entries(obj).map(([k, v]) => { const [a, b] = String(v).split(/ — |: /); return h("li", null, h("b", null, a), b ? " — " + b : ""); }));
+function helpContent(key) {
+  const R = V.regulators || {};
+  if (key.startsWith("reg:")) {
+    const k = key.slice(4), r = R[k] || {};
+    if (k === "options") return [capital(r.label), [h("p", null, "Не шкала, а количество: сколько разных ответов может потребоваться. 1 — ответ один; 2 и больше — нужно выбирать."),
+      h("p", null, "«Действовать или ждать» — два варианта: не отвечать — тоже ответ. «Выбрать момент» — один: действие одно, ждать — не ответ.")]];
+    const an = r.anchors || {};
+    return [capital(r.label), [h("ul", null, [0, 1, 2, 3].filter(i => an[i] != null).map(i => liKV(i, an[i]))),
+      h("p", { class: "meta" }, "Прочерк — к этому упражнению регулятор неприменим. Подробнее о кружках — «?» у заголовка «Регулятор».")]];
+  }
+  const T = {
+    regs: ["Регуляторы", [h("p", null, "Ручки сложности упражнения по шкале 0–3: как дозировать упражнение — от простого варианта до сложного."),
+      h("ul", null, h("li", null, "Закрашенные кружки — диапазон, в котором упражнение работает."), h("li", null, "Перечёркнутый кружок — ноль; закрашен — ноль входит в диапазон."),
+        h("li", null, "Прочерк — регулятор к упражнению неприменим.")),
+      h("p", null, "Обман, скрытие и проницательность описывают того, о ком строка: как он обманывает, как прячет свои признаки, как распознаёт намерения противника."),
+      h("p", { class: "meta" }, "У каждого регулятора свой «?» — что значит каждое деление.")]],
+    ladder: ["Лестница: от детали к бою", [h("p", null, "Ступени — части навыка фехтовальщика, от отдельного движения к бою:"),
+      h("ol", null, Object.values(V.ladder || {}).map(l => h("li", null, h("b", null, l.label), " — ", l.def))),
+      h("p", null, "Закрашенная клетка — фокус упражнения, светлее — работает попутно, ✓ — должно быть уже поставлено. Ступени накопительны: всё ниже фокуса должно уже работать."),
+      h("p", null, "Вне лестницы — метки: ", Object.values(V.ladder_marks || {}).map(m => m.label + " (" + m.def + ")").join("; "), ".")]],
+    train: ["Тренируем", [h("p", null, "Что упражнение развивает. ● — фокус: главное, ради чего упражнение; ◐ — работает попутно."),
+      h("p", null, "Перед двоеточием — часть системы, к которой относится навык: ", Object.values(V.characters || {}).map(c => c.atlas).filter(Boolean).join(", ").toLowerCase(), ".")]],
+    goal: ["Цель номера", [h("p", null, "Чего добивается этот номер по отношению к другому:"), lvlList(V.partner_goals || {})]],
+    errvis: ["Ошибка видна", [h("p", null, "Показывает ли упражнение ошибку само, без тренера:"), lvlList(V.error_visibility_levels || {}),
+      h("p", { class: "meta" }, "У упражнений на уверенность вместо этого — «Успех виден»: там важно, чтобы ученик увидел, что получилось.")]],
+    errcrit: ["Критерий ошибки", [h("p", null, "По чему судить, что сделано неправильно:"), lvlList(V.error_criteria || {})]],
+    scoring: ["Зачёт", [h("p", null, "Что засчитывается как успех: по чему ученик и тренер понимают, что получилось.")]],
+    victim: ["Воздействие на противника", [h("p", null, "На какую часть системы противника направлено действие: что у соперника оно использует или ломает. Например, «выбор и запуск действий» — вызвать преждевременный старт или задержать ответ."),
+      h("p", { class: "meta" }, "Прочерк — упражнение не про воздействие на противника.")]],
+    load: ["Сознательная нагрузка", [h("p", null, "Чем занята голова ученика во время упражнения — какая сознательная работа от него нужна:"),
+      h("ul", null, Object.values(V.engineer_load || {}).map(v => h("li", null, v)))]],
+    regulation: ["Регламентация", [h("p", null, "Насколько заранее задано, что делают участники:"), lvlList(V.regulation_levels || {})]],
+    conditions: ["Условия", [h("p", null, "Особые условия, в которых проходит упражнение:"), h("p", null, Object.values(V.conditions || {}).map(c => c.label).join(", ") + ".")]],
+    prereq: ["Что должно уже работать", [h("p", null, "Без чего упражнение не получится: эти навыки у занимающихся уже должны быть. На лестнице они отмечены ✓.")]],
+    ivreq: ["Требования боя", [h("p", null, "Каким требованиям боя упражнение помогает соответствовать: к исполнению, к физподготовке и другим частям системы.")]],
+    subst: ["Риск подмены", [h("p", null, "Как упражнение может незаметно превратиться в другое и начать учить не тому. На что смотреть тренеру.")]],
+    forms: ["Формы", [h("p", null, "В каком формате занятия упражнение работает:"), h("ul", null, Object.values(V.form || {}).map(f => h("li", null, f.label))),
+      h("p", null, h("i", { class: "tl g" }), " хорошо  ", h("i", { class: "tl y" }), " с оговорками  ", h("i", { class: "tl r" }), " плохо"),
+      h("p", { class: "meta" }, "«Описано в источнике» — в каком формате упражнение даёт автор.")]],
+    "f:level": ["Уровень", [h("p", null, "Отметьте ступень лестницы, которую группа или ученик уже уверенно держит. Останутся упражнения, которые её закрепляют и ведут на следующую; «только следующая» — лишь то, что ведёт выше."),
+      h("p", { class: "meta" }, "Ступени: ", Object.values(V.ladder || {}).map(l => l.label.toLowerCase()).join(" → "), ".")]],
+    "f:dev": ["Что развиваем", [h("p", null, "Что нужно развить: ступень лестницы, а внутри неё — конкретная задача. Число рядом — сколько упражнений найдётся."),
+      h("p", null, "«И попутно» — учитывать не только фокус, но и то, что упражнение развивает попутно. «Без партнёра-помощника» — не учитывать задачи того, кто только помогает.")]],
+    "f:form": ["Формат", [h("p", null, "Формат занятия: индивидуальное с тренером, групповое, строй, соло, бой. Сначала идут упражнения, которые в нём работают хорошо, ниже — подходящие с оговорками.")]],
+  };
+  return T[key] || [key, []];
+}
+let HELP_BTN = null;
+function closeHelp() { $("helppop").hidden = true; if (HELP_BTN) HELP_BTN.setAttribute("aria-expanded", "false"); HELP_BTN = null; }
+function openHelp(key, btn) {
+  if (HELP_BTN === btn) return closeHelp();
+  closeHelp();
+  const [title, body] = helpContent(key), pop = $("helppop");
+  pop.innerHTML = "";
+  pop.append(h("div", { class: "hp-head" }, h("b", null, title), h("button", { type: "button", class: "link", onclick: closeHelp }, "закрыть")), ...[].concat(body));
+  pop.hidden = false; HELP_BTN = btn; btn.setAttribute("aria-expanded", "true");
+  if (!isMobile()) {   // рядом с «?», не вылезая за край окна
+    const r = btn.getBoundingClientRect(), w = pop.offsetWidth, hgt = pop.offsetHeight;
+    pop.style.left = Math.max(12, Math.min(r.left - 12, innerWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + 6 + hgt > innerHeight - 8 ? Math.max(8, r.top - hgt - 6) : r.bottom + 6) + "px";
+  }
+}
+const helpBtn = key => h("button", { type: "button", class: "hq", "aria-label": "Справка", title: "Что это?", "aria-expanded": "false",
+  onclick: e => { e.stopPropagation(); openHelp(key, e.currentTarget); } }, "?");
+document.addEventListener("click", e => { if (!$("helppop").hidden && !e.target.closest("#helppop, .hq")) closeHelp(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("helppop").hidden) closeHelp(); });
+window.addEventListener("scroll", e => { if (!isMobile() && e.target !== $("helppop")) closeHelp(); }, true);   // прокрутка самой подсказки её не закрывает
 function revbar(it, bottom) {
   return h("div", { class: "revbar" + (bottom ? " bottom" : "") },
     PUBLIC ? null : REVIEWED[it.id]
