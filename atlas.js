@@ -335,7 +335,7 @@ const FKEY = "atlas-filters-v2";   // v2: край шкалы годов хра�
 const LAD_SHORT = { atomic: "атом.", coordinated: "согл.", launch: "запуск", recognition: "узнав.", control: "упр. боем", psyche: "психика" };
 let K = [], STEP = {}, YR = [0, 0];
 const F0 = () => ({ lvl: -1, lvlMode: "near", steps: [], asps: [], also: false, noHelper: true, forms: [], possible: true,
-  y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, conds: [], status: "", group: "family", topics: [] });
+  y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, conds: [], status: "", group: "family", topic: "", tcat: "" });
 const STATUS = { "": "все", open: "с открытыми заметками", answered: "с разобранными заметками", none: "без заметок", unseen: "непросмотренные", seen: "просмотренные" };
 let F = F0();
 function loadF() { try { const s = JSON.parse(localStorage.getItem(FKEY) || "null"); if (s) F = Object.assign(F0(), s); } catch (e) {} }
@@ -424,7 +424,7 @@ function match(it, G = F, skip = "") {
   if (skip !== "weap" && !weapOk(it, G.weap, G.anyW)) return null;
   if (skip !== "type" && SHOW.fMore && !typeOk(it, G.types)) return null;
   if (skip !== "obv" && SHOW.fMore && G.obvious && !obviousOk(it)) return null;
-  if (skip !== "topic" && (G.topics || []).length && !(it.topics || []).some(t => G.topics.includes(t))) return null;
+  if (skip !== "topic") { const ts = topicSet(G); if (ts.length && !(it.topics || []).some(t => ts.includes(t))) return null; }
   if (skip !== "cond" && SHOW.fMore && G.conds.length && !(it.conditions || []).some(c => G.conds.includes(c))) return null;
   return { rank, roles: rows.map(([l]) => l).filter(Boolean) };
 }
@@ -434,7 +434,10 @@ function shownList() {
   if (F.forms.length) out.sort((a, b) => b[1].rank - a[1].rank);   // сначала «хорошо», потом «с оговорками»; внутри — прежний порядок
   return out;
 }
-const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, (F.topics || []).length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
+/* тема: выбранные темы; если выбрана только категория — все её темы */
+const topicsOf = g => Object.entries(V.topics || {}).filter(([, t]) => t.group === g).map(([k]) => k);
+const topicSet = G => G.topicAny || (G.topic ? [G.topic] : []);   // одна выбранная тема; topicAny — только для счётчиков категорий
+const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, topicSet(F).length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
   F.weap.length, SHOW.fMore && F.types.length, SHOW.fMore && F.obvious, SHOW.fMore && F.conds.length, F.status].filter(Boolean).length;
 const countIf = (skip, G) => ITEMS.reduce((n, it) => n + (match(it, G, skip) ? 1 : 0), 0);
 function upd(fn) { fn(F); saveF(); renderList(); }
@@ -479,12 +482,33 @@ function renderFilters() {
     () => upd(G => { G.forms = tog(G.forms, f); }), V.form[f].label));
   box.append(h("div", { class: "fh" }, "Формат", helpBtn("f:form")), fw, h("div", { class: "fopt" },
     h("label", null, h("input", { type: "checkbox", checked: F.possible, onchange: e => upd(G => { G.possible = e.target.checked; }) }), " и «с оговорками» — ниже в списке")));
-  // тема — сквозная подборка (передвижения и т. п.)
-  const topw = h("div", { class: "chips" });
-  for (const [t, d] of Object.entries(V.topics || {}))
-    topw.append(chip(d.label, (F.topics || []).includes(t), ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, { topics: [t] })) ? 1 : 0), 0),
-      () => upd(G => { G.topics = tog(G.topics || [], t); }), d.def));
-  if (Object.keys(V.topics || {}).length) box.append(h("div", { class: "fh" }, "Тема", helpBtn("f:topic")), topw);
+  // тема: категория — папка (не фильтр), внутри неё выбирается одна тема (автор 2026-11-01: «проваливание внутрь категории»)
+  if (Object.keys(V.topics || {}).length) {
+    const cnt = G => ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, { topic: "", topicAny: null }, G)) ? 1 : 0), 0);
+    const TG = V.topic_groups || {}, T = V.topics;
+    box.append(h("div", { class: "fh" }, "Тема", helpBtn("f:topic")));
+    if (F.topic && T[F.topic]) {   // выбрана тема: «категория › тема ×»
+      const g = T[F.topic].group;
+      box.append(h("div", { class: "chips" },
+        topicsOf(g).length > 1 ? h("button", { type: "button", class: "chip", title: "Другие темы этой категории", onclick: () => upd(G => { G.tcat = g; G.topic = ""; }) }, "‹ " + (TG[g] || {}).label) : null,
+        h("button", { type: "button", class: "chip on", "aria-pressed": "true", title: "Сбросить тему", onclick: () => upd(G => { G.topic = ""; G.tcat = ""; }) }, T[F.topic].label + "  ×")));
+    } else if (F.tcat && TG[F.tcat]) {   // внутри категории: её темы
+      const tw = h("div", { class: "chips" },
+        h("button", { type: "button", class: "chip", title: "Назад к категориям", onclick: () => upd(G => { G.tcat = ""; }) }, "‹ все темы"),
+        h("span", { class: "meta", style: "align-self:center; margin:0 4px" }, (TG[F.tcat] || {}).label + ":"));
+      for (const t of topicsOf(F.tcat))
+        tw.append(chip(T[t].label, false, cnt({ topic: t }), () => upd(G => { G.topic = t; }), T[t].def));
+      box.append(tw);
+    } else {   // список категорий; у категории из одной темы — выбор сразу
+      const gw = h("div", { class: "chips" });
+      for (const [g, d] of Object.entries(TG)) {
+        const ks = topicsOf(g); if (!ks.length) continue;
+        gw.append(chip(d.label + (ks.length > 1 ? " ›" : ""), false, cnt({ topicAny: ks }),
+          () => upd(G => { if (ks.length > 1) G.tcat = g; else { G.topic = ks[0]; G.tcat = ""; } }), ks.length > 1 ? "Открыть: " + ks.map(k => T[k].label).join(", ") : T[ks[0]].def));
+      }
+      box.append(gw);
+    }
+  }
   if (SHOW.fYear) {   // год (раздел можно спрятать в настройках вида)
   const lab = h("span", { class: "meta" }, `${F.y0} — ${F.y1}`);
   // один ползунок с интервалом: две ручки на общей дорожке, выбранный отрезок закрашен
@@ -835,8 +859,8 @@ function helpContent(key) {
       h("ul", null, h("li", null, "запуск действия по сигналу;"), h("li", null, "выбор между несколькими сигналами — цвет задаёт действие;"),
         h("li", null, "умение не начать раньше времени — «горит / не горит»;"), h("li", null, "подгонку к внезапно появившейся мишени;"), h("li", null, "реакцию ногами.")),
       h("p", null, "Чего не даёт: сигнал всегда простой — огонёк, а не тело и не клинок противника. Читать противника и узнавать ситуации боя на нём не научиться.")]],
-    "f:topic": ["Тема", [h("p", null, "Сквозная подборка упражнений на одну тему — поверх лестницы и того, что развиваем:"),
-      h("ul", null, Object.values(V.topics || {}).map(t => h("li", null, h("b", null, t.label), " — ", t.def)))]],
+    "f:topic": ["Тема", [h("p", null, "Подборка упражнений по предмету — приём, тактика, метод, назначение. Нажмите категорию — откроются её темы; выберите одну. Число у категории — сколько упражнений во всех её темах."),
+      ...Object.entries(V.topic_groups || {}).map(([g, d]) => h("p", null, h("b", null, capital(d.label)), ": ", topicsOf(g).map(t => V.topics[t].label).join(", ") + "."))]],
     "f:form": ["Формат", [h("p", null, "Формат занятия: индивидуальное с тренером, групповое, строй, соло, бой. Сначала идут упражнения, которые в нём работают хорошо, ниже — подходящие с оговорками."),
       h("p", null, "«Reaction Lights» — соло со световым тренажёром реакции, подробнее ", helpBtn("rtl"))]],
   };
