@@ -1094,7 +1094,7 @@ document.addEventListener("keydown", e => {
     V = b.voc; SRC = b.sources; NOTES = b.notes || []; REVIEWED = b.reviewed || {}; ABOUT = b.about || "";
     ITEMS = b.items.sort((x, y) => String(x.family).localeCompare(String(y.family), "ru") || (x.family_order ?? 99) - (y.family_order ?? 99) || x.name.localeCompare(y.name, "ru"));
     byId = new Map(ITEMS.map(x => [x.id, x]));
-    loadView(); $("view-btn").hidden = $("tab-view").hidden = !PUBLIC;
+    loadView(); $("view-btn").hidden = $("tab-view").hidden = !PUBLIC; $("mod-link").hidden = PUBLIC;
     // публичная версия: фоновый скрипт сохраняет атлас в телефоне — дальше он открывается и без интернета (build_web.py → sw.js)
     if (PUBLIC) loadCounts();
     if (PUBLIC && "serviceWorker" in navigator) navigator.serviceWorker.register(ROOT + "sw.js").catch(() => {});
