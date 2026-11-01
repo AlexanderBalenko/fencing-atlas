@@ -335,7 +335,7 @@ const FKEY = "atlas-filters-v2";   // v2: край шкалы годов хра�
 const LAD_SHORT = { atomic: "атом.", coordinated: "согл.", launch: "запуск", recognition: "узнав.", control: "упр. боем", psyche: "психика" };
 let K = [], STEP = {}, YR = [0, 0];
 const F0 = () => ({ lvl: -1, lvlMode: "near", steps: [], asps: [], also: false, noHelper: true, forms: [], possible: true,
-  y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, conds: [], status: "", group: "family" });
+  y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, conds: [], status: "", group: "family", topics: [] });
 const STATUS = { "": "все", open: "с открытыми заметками", answered: "с разобранными заметками", none: "без заметок", unseen: "непросмотренные", seen: "просмотренные" };
 let F = F0();
 function loadF() { try { const s = JSON.parse(localStorage.getItem(FKEY) || "null"); if (s) F = Object.assign(F0(), s); } catch (e) {} }
@@ -424,6 +424,7 @@ function match(it, G = F, skip = "") {
   if (skip !== "weap" && !weapOk(it, G.weap, G.anyW)) return null;
   if (skip !== "type" && SHOW.fMore && !typeOk(it, G.types)) return null;
   if (skip !== "obv" && SHOW.fMore && G.obvious && !obviousOk(it)) return null;
+  if (skip !== "topic" && (G.topics || []).length && !(it.topics || []).some(t => G.topics.includes(t))) return null;
   if (skip !== "cond" && SHOW.fMore && G.conds.length && !(it.conditions || []).some(c => G.conds.includes(c))) return null;
   return { rank, roles: rows.map(([l]) => l).filter(Boolean) };
 }
@@ -433,7 +434,7 @@ function shownList() {
   if (F.forms.length) out.sort((a, b) => b[1].rank - a[1].rank);   // сначала «хорошо», потом «с оговорками»; внутри — прежний порядок
   return out;
 }
-const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
+const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, (F.topics || []).length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
   F.weap.length, SHOW.fMore && F.types.length, SHOW.fMore && F.obvious, SHOW.fMore && F.conds.length, F.status].filter(Boolean).length;
 const countIf = (skip, G) => ITEMS.reduce((n, it) => n + (match(it, G, skip) ? 1 : 0), 0);
 function upd(fn) { fn(F); saveF(); renderList(); }
@@ -478,6 +479,12 @@ function renderFilters() {
     () => upd(G => { G.forms = tog(G.forms, f); }), V.form[f].label));
   box.append(h("div", { class: "fh" }, "Формат", helpBtn("f:form")), fw, h("div", { class: "fopt" },
     h("label", null, h("input", { type: "checkbox", checked: F.possible, onchange: e => upd(G => { G.possible = e.target.checked; }) }), " и «с оговорками» — ниже в списке")));
+  // тема — сквозная подборка (передвижения и т. п.)
+  const topw = h("div", { class: "chips" });
+  for (const [t, d] of Object.entries(V.topics || {}))
+    topw.append(chip(d.label, (F.topics || []).includes(t), ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, { topics: [t] })) ? 1 : 0), 0),
+      () => upd(G => { G.topics = tog(G.topics || [], t); }), d.def));
+  if (Object.keys(V.topics || {}).length) box.append(h("div", { class: "fh" }, "Тема", helpBtn("f:topic")), topw);
   if (SHOW.fYear) {   // год (раздел можно спрятать в настройках вида)
   const lab = h("span", { class: "meta" }, `${F.y0} — ${F.y1}`);
   // один ползунок с интервалом: две ручки на общей дорожке, выбранный отрезок закрашен
@@ -828,6 +835,8 @@ function helpContent(key) {
       h("ul", null, h("li", null, "запуск действия по сигналу;"), h("li", null, "выбор между несколькими сигналами — цвет задаёт действие;"),
         h("li", null, "умение не начать раньше времени — «горит / не горит»;"), h("li", null, "подгонку к внезапно появившейся мишени;"), h("li", null, "реакцию ногами.")),
       h("p", null, "Чего не даёт: сигнал всегда простой — огонёк, а не тело и не клинок противника. Читать противника и узнавать ситуации боя на нём не научиться.")]],
+    "f:topic": ["Тема", [h("p", null, "Сквозная подборка упражнений на одну тему — поверх лестницы и того, что развиваем:"),
+      h("ul", null, Object.values(V.topics || {}).map(t => h("li", null, h("b", null, t.label), " — ", t.def)))]],
     "f:form": ["Формат", [h("p", null, "Формат занятия: индивидуальное с тренером, групповое, строй, соло, бой. Сначала идут упражнения, которые в нём работают хорошо, ниже — подходящие с оговорками."),
       h("p", null, "«Reaction Lights» — соло со световым тренажёром реакции, подробнее ", helpBtn("rtl"))]],
   };
