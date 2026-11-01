@@ -368,7 +368,8 @@ function lvlOk(it, r, lvl, mode) {
   const fs = fstep(r), need = it.technique === "none" ? preMax(it) : Math.max(preMax(it), fs - 1);
   if (need > lvl) return false;
   if (it.technique === "none") return true;   // без фехтовальной техники — доступно на любом уровне, ступень фокуса не ограничивает
-  return mode === "next" ? fs === lvl + 1 : fs <= lvl + 1;
+  // закрепление — фокус на отмеченной ступени или следующей (автор 2026-11-01: более простое не показывать); «всё по силам» — до следующей включительно
+  return mode === "next" ? fs === lvl + 1 : mode === "all" ? fs <= lvl + 1 : fs >= lvl && fs <= lvl + 1;
 }
 function devOk(r, steps, asps, also) {
   if (!steps.length && !asps.length) return true;
@@ -460,7 +461,8 @@ function renderFilters() {
     ladPick(i => i <= F.lvl ? "k" : "", i => upd(G => { G.lvl = G.lvl === i ? -1 : i; })),
     F.lvl >= 0 ? h("div", { class: "fopt" },
       h("label", null, h("input", { type: "radio", name: "lm", checked: F.lvl >= 0 && F.lvlMode === "near", onchange: () => upd(G => { G.lvlMode = "near"; }) }), " закрепление и следующая ступень"),
-      h("label", null, h("input", { type: "radio", name: "lm", checked: F.lvlMode === "next", onchange: () => upd(G => { G.lvlMode = "next"; }) }), " только следующая")) :
+      h("label", null, h("input", { type: "radio", name: "lm", checked: F.lvlMode === "next", onchange: () => upd(G => { G.lvlMode = "next"; }) }), " только следующая"),
+      h("label", { title: "Всё до следующей ступени, включая более простое" }, h("input", { type: "radio", name: "lm", checked: F.lvlMode === "all", onchange: () => upd(G => { G.lvlMode = "all"; }) }), " всё, что по силам")) :
       h("div", { class: "fopt meta" }, "Кликни по ступени, которую группа уже умеет"));
   // что развиваем
   box.append(h("div", { class: "fh" }, "Что развиваем", helpBtn("f:dev")),
@@ -849,7 +851,7 @@ function helpContent(key) {
       h("p", null, h("i", { class: "tl g" }), " хорошо  ", h("i", { class: "tl y" }), " с оговорками  ", h("i", { class: "tl r" }), " плохо"),
       h("p", null, "Соло с Reaction Training Lights — со световым тренажёром реакции, подробнее ", helpBtn("rtl")),
       h("p", { class: "meta" }, "«Описано в источнике» — в каком формате упражнение даёт автор.")]],
-    "f:level": ["Уровень", [h("p", null, "Отметьте ступень лестницы, которую группа или ученик уже уверенно держит. Останутся упражнения, которые её закрепляют и ведут на следующую; «только следующая» — лишь то, что ведёт выше."),
+    "f:level": ["Уровень", [h("p", null, "Отметьте ступень лестницы, которую группа или ученик уже уверенно держит. «Закрепление и следующая ступень» — упражнения с фокусом на этой ступени и на следующей; «только следующая» — лишь то, что ведёт выше; «всё, что по силам» — всё до следующей ступени, включая более простое."),
       h("p", { class: "meta" }, "Ступени: ", Object.values(V.ladder || {}).map(l => l.label.toLowerCase()).join(" → "), ".")]],
     "f:dev": ["Что развиваем", [h("p", null, "Что нужно развить: ступень лестницы, а внутри неё — конкретная задача. Число рядом — сколько упражнений найдётся."),
       h("p", null, "«И попутно» — учитывать не только фокус, но и то, что упражнение развивает попутно. «Без партнёра-помощника» — не учитывать задачи того, кто только помогает.")]],
