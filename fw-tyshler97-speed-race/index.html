@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Соревнование на быстроту передвижения: наперегонки шагами, скачками, выпадами — Атлас упражнений</title>
+<base href="../">
+<meta name="atlas-card" content="fw-tyshler97-speed-race">
+<meta name="description" content="Группа в шеренге на линии старта, каждый сам за себя; по сигналу тренера все разом, без оружия или с оружием.">
+<meta property="og:title" content="Соревнование на быстроту передвижения: наперегонки шагами, скачками, выпадами — Атлас упражнений">
+<meta property="og:description" content="Группа в шеренге на линии старта, каждый сам за себя; по сигналу тренера все разом, без оружия или с оружием.">
+<meta property="og:type" content="website">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f5d7c">
+<meta property="og:image" content="https://alexanderbalenko.github.io/fencing-atlas/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=PT+Mono&display=swap">
+<link rel="stylesheet" href="atlas.css?v=fd47d99851">
+</head>
+<body>
+<aside>
+  <header>
+    <div class="titlebar"><h1><a href="./" id="home-link" title="Главная: что это и как с ним работать"><span class="logo" aria-hidden="true"></span>Атлас упражнений</a></h1><button type="button" id="about-btn" title="Главная: что это и как с ним работать" aria-label="Главная"><span aria-hidden="true">⌂</span> Главная</button><button type="button" id="view-btn" title="Вид: что показывать в карточке" aria-label="Вид: что показывать" hidden>⚙</button><button type="button" id="theme" aria-label="Сменить тему" title="Сменить тему"></button><a id="mod-link" href="/moderate" hidden title="Модерация обсуждений сайта">💬 модерация</a></div>
+    <div class="row"><input type="search" id="q" placeholder="Поиск: название, семейство, текст" aria-label="Поиск"></div>
+    <div class="meta" id="count"></div>
+    <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+  </header>
+  <div class="fscroll"><div class="fbox" id="fbox"><div class="fhead">Фильтры <span class="meta" id="fsum"></span></div><div id="filters"></div></div></div>
+  <div class="fshow"><button type="button" class="primary" id="fshow">Показать</button></div>
+</aside>
+
+<main id="card"><p class="empty">Загружаю…</p></main>
+
+<section id="side" aria-label="Упражнения и заметки">
+  <div class="sidehead"><h3>Упражнения</h3><button type="button" class="link" id="tree-collapse" title="Свернуть все семейства, кроме открытого">свернуть</button><button type="button" class="link" id="tree-expand">развернуть</button></div>
+  <div id="list"></div>
+  <details id="notes"><summary>Заметки <span class="meta" id="notes-meta"></span></summary><div class="nbody">
+  <div id="note-list"></div>
+  <form id="note-form">
+    <label class="meta" for="nt-target">К чему</label>
+    <select id="nt-target"></select>
+    <label class="meta" for="nt-text">Заметка</label>
+    <textarea id="nt-text" placeholder="Что не так или что добавить. Ctrl+Enter — сохранить"></textarea>
+    <div class="row"><button type="submit" class="primary">Сохранить заметку</button><span class="meta" id="nt-msg"></span></div>
+  </form>
+  </div></details>
+</section>
+
+<div id="helppop" hidden role="dialog" aria-label="Справка"></div>
+<div id="viewpanel" hidden role="dialog" aria-modal="true" aria-label="Вид: что показывать"><div class="vp" id="vp"></div></div>
+
+<nav id="tabs" aria-label="Экраны">
+  <button type="button" data-v="about"><span class="ic" aria-hidden="true">⌂</span><span>Главная</span></button>
+  <button type="button" data-v="filters"><span class="ic" aria-hidden="true">⚲</span><span>Фильтры<span class="cnt" id="tab-fcnt" hidden></span></span></button>
+  <button type="button" data-v="list"><span class="ic" aria-hidden="true">☰</span><span>Список</span></button>
+  <button type="button" data-v="card"><span class="ic" aria-hidden="true">▤</span><span>Карточка</span></button>
+  <button type="button" data-v="view" id="tab-view" hidden><span class="ic" aria-hidden="true">⚙</span><span>Вид</span></button>
+</nav>
+
+<script src="data.js?v=97ddb41161"></script>
+<script src="atlas.js?v=2e11b58a69"></script>
+</body>
+</html>
