@@ -334,7 +334,7 @@ const TYPES = { training: "развивающие", diagnostic: "проверо�
 const FKEY = "atlas-filters-v2";   // v2: край шкалы годов хранится как «без границы» (null), а не как год
 const LAD_SHORT = { atomic: "атом.", coordinated: "согл.", launch: "запуск", recognition: "узнав.", control: "упр. боем", psyche: "психика" };
 let K = [], STEP = {}, YR = [0, 0];
-const F0 = () => ({ have: [], steps: [], asps: [], also: false, noHelper: true, forms: [], possible: true,
+const F0 = () => ({ lvl: -1, steps: [], asps: [], also: false, noHelper: true, forms: [], possible: true,
   y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, conds: [], status: "", group: "family", topic: "", tcat: "" });
 const STATUS = { "": "все", open: "с открытыми заметками", answered: "с разобранными заметками", none: "без заметок", unseen: "непросмотренные", seen: "просмотренные" };
 let F = F0();
@@ -369,10 +369,11 @@ function ticksOf(it, r) {
   const fs = fstep(r), pre = new Set((it.prerequisites || []).map(a => STEP[a])), cum = it.technique !== "none";
   return new Set(K.map((k, i) => i).filter(i => pre.has(i) || (cum && i < fs)));
 }
-function lvlOk(it, r, have) {
-  if (!(have || []).length) return true;
+function lvlOk(it, r, lvl) {   // уровень отмечается лестницей: стоят все ступени 0…lvl
+  if (lvl < 0) return true;
   const t = ticksOf(it, r);
-  return have.every(i => t.has(i));
+  for (let i = 0; i <= lvl; i++) if (!t.has(i)) return false;
+  return true;
 }
 function devOk(r, steps, asps, also) {
   if (!steps.length && !asps.length) return true;
@@ -420,7 +421,7 @@ function baseOk(it) {   // поиск и статус разбора — как 
 /* Совпадение по всем фильтрам; skip — фасет, который не учитывать (для счётчиков). Возвращает null или {rank, roles}. */
 function match(it, G = F, skip = "") {
   if (!baseOk(it)) return null;
-  const rows = trainedRows(it).filter(([, r]) => (skip === "lvl" || lvlOk(it, r, G.have)) && (skip === "dev" || devOk(r, G.steps, G.asps, G.also)));
+  const rows = trainedRows(it).filter(([, r]) => (skip === "lvl" || lvlOk(it, r, G.lvl)) && (skip === "dev" || devOk(r, G.steps, G.asps, G.also)));
   if (!rows.length) return null;
   const rank = skip === "form" ? 2 : formRank(it, G.forms, G.possible);
   if (!rank) return null;
@@ -441,7 +442,7 @@ function shownList() {
 /* тема: выбранные темы; если выбрана только категория — все её темы */
 const topicsOf = g => Object.entries(V.topics || {}).filter(([, t]) => t.group === g).map(([k]) => k);
 const topicSet = G => G.topicAny || (G.topic ? [G.topic] : []);   // одна выбранная тема; topicAny — только для счётчиков категорий
-const activeCount = () => [(F.have || []).length, F.steps.length || F.asps.length, F.forms.length, topicSet(F).length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
+const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, topicSet(F).length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
   F.weap.length, SHOW.fMore && F.types.length, SHOW.fMore && F.obvious, SHOW.fMore && F.conds.length, F.status].filter(Boolean).length;
 const countIf = (skip, G) => ITEMS.reduce((n, it) => n + (match(it, G, skip) ? 1 : 0), 0);
 function upd(fn) { fn(F); saveF(); renderList(); }
@@ -460,8 +461,8 @@ function renderFilters() {
   $("fsum").textContent = n ? `· включено ${n}` : "";
   // уровень
   box.append(h("div", { class: "fh" }, "Уровень: уже уверенно стоит", helpBtn("f:level")),
-    ladPick(i => (F.have || []).includes(i) ? "k" : "", i => upd(G => { G.have = tog(G.have || [], i); })),
-    h("div", { class: "fopt meta" }, (F.have || []).length ? "Показаны упражнения, где эти ступени должны уже работать" : "Отметьте ступени, которые у группы уже стоят"));
+    ladPick(i => i <= F.lvl ? "k" : "", i => upd(G => { G.lvl = G.lvl === i ? -1 : i; })),
+    h("div", { class: "fopt meta" }, F.lvl >= 0 ? "Показаны упражнения, где отмеченные ступени должны уже работать" : "Кликните по ступени, до которой у группы всё уже стоит"));
   // что развиваем
   box.append(h("div", { class: "fh" }, "Что развиваем", helpBtn("f:dev")),
     ladPick(i => F.steps.includes(i) ? "t" : "", i => upd(G => { G.steps = tog(G.steps, i); G.asps = G.asps.filter(a => G.steps.includes(STEP[a])); })));
@@ -848,7 +849,7 @@ function helpContent(key) {
       h("p", null, h("i", { class: "tl g" }), " хорошо  ", h("i", { class: "tl y" }), " с оговорками  ", h("i", { class: "tl r" }), " плохо"),
       h("p", null, "Соло с Reaction Training Lights — со световым тренажёром реакции, подробнее ", helpBtn("rtl")),
       h("p", { class: "meta" }, "«Описано в источнике» — в каком формате упражнение даёт автор.")]],
-    "f:level": ["Уровень", [h("p", null, "Отметьте ступени, которые у группы или ученика уже уверенно стоят. Останутся упражнения, где эти ступени должны уже работать (✓ на лестнице) — более простые, где они не нужны, уйдут. Что именно развивать — следующий фильтр, «Что развиваем»."),
+    "f:level": ["Уровень", [h("p", null, "Кликните по ступени, до которой у группы или ученика всё уже уверенно стоит (нижние отметятся сами). Останутся упражнения, где эти ступени должны уже работать (✓ на лестнице) — более простые, где они не нужны, уйдут. Что именно развивать — следующий фильтр, «Что развиваем»."),
       h("p", { class: "meta" }, "Ступени: ", Object.values(V.ladder || {}).map(l => l.label.toLowerCase()).join(" → "), ".")]],
     "f:dev": ["Что развиваем", [h("p", null, "Что нужно развить: ступень лестницы, а внутри неё — конкретная задача. Число рядом — сколько упражнений найдётся."),
       h("p", null, "«И попутно» — учитывать не только фокус, но и то, что упражнение развивает попутно. «Без партнёра-помощника» — не учитывать задачи того, кто только помогает.")]],
