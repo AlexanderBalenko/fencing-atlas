@@ -410,6 +410,7 @@ function baseOk(it) {   // поиск и статус разбора — как 
   if (f === "none") return !ns.length;
   if (f === "unseen") return !REVIEWED[it.id];
   if (f === "seen") return !!REVIEWED[it.id];
+  if (f.startsWith("batch:")) return it.batch === f.slice(6);   // партия новых карточек (поле batch)
   return true;
 }
 /* Совпадение по всем фильтрам; skip — фасет, который не учитывать (для счётчиков). Возвращает null или {rank, roles}. */
@@ -506,8 +507,10 @@ function renderFilters() {
   more.append(h("div", { class: "fh" }, "Тип"), tw,
     h("div", { class: "fopt" }, h("label", { title: V.error_visibility_levels.obvious }, h("input", { type: "checkbox", checked: F.obvious, onchange: e => upd(G => { G.obvious = e.target.checked; }) }), " ошибка видна сама (наглядная)")),
     h("div", { class: "fh" }, "Условия"), cw,
-    PUBLIC ? null : [h("div", { class: "fh" }, "Разбор"), h("div", { class: "chips" }, Object.entries(STATUS).filter(([k]) => k).map(([k, l]) =>
-      chip(l, F.status === k, null, () => upd(G => { G.status = G.status === k ? "" : k; }))))]);
+    PUBLIC ? "" : h("div", null, h("div", { class: "fh" }, "Разбор"), h("div", { class: "chips" }, Object.entries(STATUS).filter(([k]) => k).map(([k, l]) =>
+      chip(l, F.status === k, null, () => upd(G => { G.status = G.status === k ? "" : k; }))),
+      [...new Set(ITEMS.map(x => x.batch).filter(Boolean))].map(b => chip("новые: " + b, F.status === "batch:" + b, ITEMS.filter(x => x.batch === b).length,
+        () => upd(G => { G.status = G.status === "batch:" + b ? "" : "batch:" + b; }), "Карточки, заведённые партией «" + b + "»")))));
   if (SHOW.fMore) box.append(more);
   if (n) box.append(h("div", { class: "fopt" }, h("button", { type: "button", class: "link", onclick: () => { const g = F.group; F = F0(); F.y0 = YR[0]; F.y1 = YR[1]; F.group = g; saveF(); renderList(); } }, "сбросить фильтры")));
 }
@@ -616,6 +619,7 @@ function renderCard() {
   const periods = [...new Set((it.sources || []).map(s => (SRC[s.source] || {}).period).filter(Boolean))];
   m.append(
     famNav(it),
+    !PUBLIC && it.batch ? h("div", { class: "batchmark", title: "Новая карточка из партии «" + it.batch + "» — ещё не разобрана автором" }, "новая · " + it.batch) : null,
     h("h2", null, it.name),
     h("p", { class: "ctx" }, weaponLine(it)),
     SHOW.ladder ? ladderView(it) : null,
