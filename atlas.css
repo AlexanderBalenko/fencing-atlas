@@ -169,9 +169,8 @@ hr.hdiv{border:0; height:1px; background:linear-gradient(90deg, var(--accent), v
 .chip.on .n{color:var(--accent)}
 .chip.zero{opacity:.55}
 .pick{display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:2px}
-.pick .pc{padding:3px 0; border-radius:4px; font-size:.68rem; background:var(--soft); border:1px solid var(--line); color:var(--muted); overflow:hidden; white-space:nowrap}
+.pick .pc{padding:3px 1px; border-radius:4px; font-size:.68rem; line-height:1.15; background:var(--soft); border:1px solid var(--line); color:var(--muted); overflow:hidden; white-space:normal; hyphens:auto; -webkit-hyphens:auto; min-width:0}
 .pick .pc.k{background:color-mix(in srgb, var(--done) 22%, var(--surface)); border-color:var(--done); color:var(--done); font-weight:600}
-.pick .pc.k span::before{content:"✓ "}
 .pick .pc.t{background:var(--accent); border-color:var(--accent); color:var(--surface); font-weight:600}
 .yrs{position:relative; height:22px; margin:2px 7px 0}
 .yrs .trk, .yrs .sel{position:absolute; top:9px; height:4px; border-radius:2px}
@@ -302,6 +301,26 @@ details.more > summary{cursor:pointer; font-size:.8rem; color:var(--accent)}
 .about .go{margin-top:18px; display:none}
 .batchmark{display:inline-block; font-size:.74rem; font-weight:600; padding:1px 9px; border-radius:9px; margin:2px 0 4px;
   background:color-mix(in srgb, var(--open) 18%, transparent); color:var(--open)}
+/* фильтр «Тема»: дерево категорий и тем */
+.tsel-head{display:flex; gap:6px; align-items:baseline; font-size:.82rem; margin:0 0 4px}
+.tsel-head b{font-weight:600; color:var(--accent)}
+.tsel{display:flex; flex-direction:column; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--bg)}
+.trow{display:flex; gap:6px; align-items:baseline; width:100%; text-align:left; border:0; border-radius:0; background:none; padding:4px 10px; font-size:.82rem; line-height:1.35}
+.trow + .trow{border-top:1px solid var(--line)}
+.trow:hover{background:var(--soft)}
+.trow .tw{width:1em; flex:none; color:var(--muted); font-size:.75rem; align-self:center; display:inline-flex; justify-content:center}
+.trow .rd{display:inline-block; width:10px; height:10px; border-radius:50%; border:1.5px solid currentColor; box-sizing:border-box}
+.trow .rd.on{background:currentColor; box-shadow:inset 0 0 0 2px var(--bg)}
+.trow.sub .rd.on{box-shadow:inset 0 0 0 2px var(--surface)}
+.trow .tlab{flex:1; min-width:0}
+.trow .tn{font-family:var(--font-data); font-size:.72rem; color:var(--muted)}
+.trow.cat{font-weight:500}
+.trow.sub{padding-left:26px; background:var(--surface)}
+.trow.sub:hover{background:var(--soft)}
+.trow.on{color:var(--accent); font-weight:600}
+.trow.on .tw, .trow.on .tn{color:var(--accent)}
+.trow.zero{opacity:.5}
+@media (max-width: 700px){ .trow{padding:9px 12px; font-size:.92rem} .trow.sub{padding-left:30px} }
 #mod-link{font-size:.82rem; color:var(--accent); white-space:nowrap}
 #about-btn{padding:2px 9px; font-size:.82rem; line-height:1.5; white-space:nowrap}
 .titlebar h1{flex:1 0 100%}   /* название — своей строкой, кнопки «Главная», вид и тема — строкой ниже */

@@ -482,32 +482,32 @@ function renderFilters() {
     () => upd(G => { G.forms = tog(G.forms, f); }), V.form[f].label));
   box.append(h("div", { class: "fh" }, "Формат", helpBtn("f:form")), fw, h("div", { class: "fopt" },
     h("label", null, h("input", { type: "checkbox", checked: F.possible, onchange: e => upd(G => { G.possible = e.target.checked; }) }), " и «с оговорками» — ниже в списке")));
-  // тема: категория — папка (не фильтр), внутри неё выбирается одна тема (автор 2026-11-01: «проваливание внутрь категории»)
+  // тема: дерево — категории строками, раскрываются в темы; выбирается одна тема (автор 2026-11-01)
   if (Object.keys(V.topics || {}).length) {
     const cnt = G => ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, { topic: "", topicAny: null }, G)) ? 1 : 0), 0);
     const TG = V.topic_groups || {}, T = V.topics;
-    box.append(h("div", { class: "fh" }, "Тема", helpBtn("f:topic")));
-    if (F.topic && T[F.topic]) {   // выбрана тема: «категория › тема ×»
-      const g = T[F.topic].group;
-      box.append(h("div", { class: "chips" },
-        topicsOf(g).length > 1 ? h("button", { type: "button", class: "chip", title: "Другие темы этой категории", onclick: () => upd(G => { G.tcat = g; G.topic = ""; }) }, "‹ " + (TG[g] || {}).label) : null,
-        h("button", { type: "button", class: "chip on", "aria-pressed": "true", title: "Сбросить тему", onclick: () => upd(G => { G.topic = ""; G.tcat = ""; }) }, T[F.topic].label + "  ×")));
-    } else if (F.tcat && TG[F.tcat]) {   // внутри категории: её темы
-      const tw = h("div", { class: "chips" },
-        h("button", { type: "button", class: "chip", title: "Назад к категориям", onclick: () => upd(G => { G.tcat = ""; }) }, "‹ все темы"),
-        h("span", { class: "meta", style: "align-self:center; margin:0 4px" }, (TG[F.tcat] || {}).label + ":"));
-      for (const t of topicsOf(F.tcat))
-        tw.append(chip(T[t].label, false, cnt({ topic: t }), () => upd(G => { G.topic = t; }), T[t].def));
-      box.append(tw);
-    } else {   // список категорий; у категории из одной темы — выбор сразу
-      const gw = h("div", { class: "chips" });
-      for (const [g, d] of Object.entries(TG)) {
-        const ks = topicsOf(g); if (!ks.length) continue;
-        gw.append(chip(d.label + (ks.length > 1 ? " ›" : ""), false, cnt({ topicAny: ks }),
-          () => upd(G => { if (ks.length > 1) G.tcat = g; else { G.topic = ks[0]; G.tcat = ""; } }), ks.length > 1 ? "Открыть: " + ks.map(k => T[k].label).join(", ") : T[ks[0]].def));
+    const sel = F.topic && T[F.topic] ? F.topic : "";
+    const head = h("div", { class: "tsel-head" }, h("span", { class: "meta" }, "Тема:"),
+      sel ? [h("b", null, capital((TG[T[sel].group] || {}).label) + (topicsOf(T[sel].group).length > 1 ? " › " + T[sel].label : "")),
+             h("button", { type: "button", class: "link", title: "Сбросить тему", "aria-label": "Сбросить тему", onclick: () => upd(G => { G.topic = ""; }) }, "✕")]
+          : h("span", { class: "meta" }, "любая"));
+    const tree = h("div", { class: "tsel", role: "tree" });
+    for (const [g, d] of Object.entries(TG)) {
+      const ks = topicsOf(g); if (!ks.length) continue;
+      const single = ks.length === 1, open = !single && F.tcat === g, n = cnt({ topicAny: ks });
+      const on = single && sel === ks[0], inside = !single && sel && T[sel].group === g;
+      tree.append(h("button", { type: "button", class: "trow cat" + (on || inside ? " on" : "") + (n ? "" : " zero"), role: "treeitem",
+        "aria-expanded": single ? null : String(open), title: single ? T[ks[0]].def : ks.map(k => T[k].label).join(", "),
+        onclick: () => upd(G => { if (single) G.topic = G.topic === ks[0] ? "" : ks[0]; else G.tcat = G.tcat === g ? "" : g; }) },
+        single ? h("span", { class: "tw" }, h("i", { class: "rd" + (on ? " on" : "") })) : h("span", { class: "tw" }, open ? "▾" : "▸"), h("span", { class: "tlab" }, capital(d.label)), h("span", { class: "tn" }, n)));
+      if (open) for (const t of ks) {
+        const m = cnt({ topic: t }), cur = sel === t;
+        tree.append(h("button", { type: "button", class: "trow sub" + (cur ? " on" : "") + (m ? "" : " zero"), role: "treeitem", title: T[t].def,
+          "aria-selected": String(cur), onclick: () => upd(G => { G.topic = G.topic === t ? "" : t; }) },
+          h("span", { class: "tw" }, h("i", { class: "rd" + (cur ? " on" : "") })), h("span", { class: "tlab" }, T[t].label), h("span", { class: "tn" }, m)));
       }
-      box.append(gw);
     }
+    box.append(h("div", { class: "fh" }, "Тема", helpBtn("f:topic")), head, tree);
   }
   if (SHOW.fYear) {   // год (раздел можно спрятать в настройках вида)
   const lab = h("span", { class: "meta" }, `${F.y0} — ${F.y1}`);
