@@ -663,12 +663,12 @@ function renderCard() {
   const tlight = x => h("i", { class: "tl " + ({ good: "g", possible: "y", poor: "r" }[x.fit] || ""), title: V.form_fit[x.fit] || x.fit, "aria-label": V.form_fit[x.fit] || x.fit });
   const fitForms = Object.keys(V.form).filter(f => ["good", "possible"].includes((fm[f] || {}).fit)).sort((a, b) => (fm[a].fit === "good" ? 0 : 1) - (fm[b].fit === "good" ? 0 : 1));
   if (SHOW.forms === "line") m.append(blk(["Формы", helpBtn("forms")], "form", fitForms.length ? h("div", { class: "formline" }, fitForms.map(f =>
-    h("span", { title: refText(fm[f].why || "").map(x => x.textContent ?? x).join("") }, tlight(fm[f]), FORM_SHORT[f] || V.form[f].label))) : h("p", { class: "meta" }, "—")));
+    h("span", { title: refText(fm[f].why || "").map(x => x.textContent ?? x).join("") }, tlight(fm[f]), FORM_SHORT[f] || V.form[f].label, f === "solo-lights" ? helpBtn("rtl") : null))) : h("p", { class: "meta" }, "—")));
   else m.append(blk(["Формы", helpBtn("forms")], "form",
     SHOW.forms === "all" ? h("div", { class: "meta", style: "margin-bottom:4px" }, "Описано в источнике: " + listOrDash(fm.described_in, f => (V.form[f] || {}).label || f)) : null,
     h("div", { class: "wrapx" }, h("table", { class: "t" }, h("tbody", null, (SHOW.forms === "fit" ? fitForms : Object.keys(V.form)).map(f => {
       const x = fm[f] || {};
-      return h("tr", null, h("th", null, V.form[f].label), h("td", { class: "v", style: "text-align:center" }, x.fit ? h("i", { class: "tl " + ({ good: "g", possible: "y", poor: "r" }[x.fit] || ""), title: V.form_fit[x.fit] || x.fit, "aria-label": V.form_fit[x.fit] || x.fit }) : "—"), h("td", null, refText(x.why || "")));
+      return h("tr", null, h("th", null, V.form[f].label, f === "solo-lights" ? helpBtn("rtl") : null), h("td", { class: "v", style: "text-align:center" }, x.fit ? h("i", { class: "tl " + ({ good: "g", possible: "y", poor: "r" }[x.fit] || ""), title: V.form_fit[x.fit] || x.fit, "aria-label": V.form_fit[x.fit] || x.fit }) : "—"), h("td", null, refText(x.why || "")));
     }))))));
   const fnr = (it.field_notes || {}).regulators;
   const props = [
@@ -812,12 +812,20 @@ function helpContent(key) {
     subst: ["Риск подмены", [h("p", null, "Как упражнение может незаметно превратиться в другое и начать учить не тому. На что смотреть тренеру.")]],
     forms: ["Формы", [h("p", null, "В каком формате занятия упражнение работает:"), h("ul", null, Object.values(V.form || {}).map(f => h("li", null, f.label))),
       h("p", null, h("i", { class: "tl g" }), " хорошо  ", h("i", { class: "tl y" }), " с оговорками  ", h("i", { class: "tl r" }), " плохо"),
+      h("p", null, "Соло с Reaction Training Lights — со световым тренажёром реакции, подробнее ", helpBtn("rtl")),
       h("p", { class: "meta" }, "«Описано в источнике» — в каком формате упражнение даёт автор.")]],
     "f:level": ["Уровень", [h("p", null, "Отметьте ступень лестницы, которую группа или ученик уже уверенно держит. Останутся упражнения, которые её закрепляют и ведут на следующую; «только следующая» — лишь то, что ведёт выше."),
       h("p", { class: "meta" }, "Ступени: ", Object.values(V.ladder || {}).map(l => l.label.toLowerCase()).join(" → "), ".")]],
     "f:dev": ["Что развиваем", [h("p", null, "Что нужно развить: ступень лестницы, а внутри неё — конкретная задача. Число рядом — сколько упражнений найдётся."),
       h("p", null, "«И попутно» — учитывать не только фокус, но и то, что упражнение развивает попутно. «Без партнёра-помощника» — не учитывать задачи того, кто только помогает.")]],
-    "f:form": ["Формат", [h("p", null, "Формат занятия: индивидуальное с тренером, групповое, строй, соло, бой. Сначала идут упражнения, которые в нём работают хорошо, ниже — подходящие с оговорками.")]],
+    rtl: ["Reaction Training Lights", [
+      h("p", null, "Световые тренажёры реакции: небольшие беспроводные «таблетки» с подсветкой (например, BlazePod, FitLight). Их ставят на мишень, стену или стойку, раскладывают на полу. Приложение зажигает их по программе — в случайный момент, разным цветом, в разной точке; касание или движение рядом гасит огонёк, тренажёр записывает время реакции."),
+      h("p", null, "В атласе это отдельная форма — соло с тренажёром: он заменяет тренера там, где сигнал простой: поднять лапу, скомандовать, показать цель, уронить перчатку. На нём хорошо ставить:"),
+      h("ul", null, h("li", null, "запуск действия по сигналу;"), h("li", null, "выбор между несколькими сигналами — цвет задаёт действие;"),
+        h("li", null, "умение не начать раньше времени — «горит / не горит»;"), h("li", null, "подгонку к внезапно появившейся мишени;"), h("li", null, "реакцию ногами.")),
+      h("p", null, "Чего не даёт: сигнал всегда простой — огонёк, а не тело и не клинок противника. Читать противника и узнавать ситуации боя на нём не научиться.")]],
+    "f:form": ["Формат", [h("p", null, "Формат занятия: индивидуальное с тренером, групповое, строй, соло, бой. Сначала идут упражнения, которые в нём работают хорошо, ниже — подходящие с оговорками."),
+      h("p", null, "«Reaction Lights» — соло со световым тренажёром реакции, подробнее ", helpBtn("rtl"))]],
   };
   return T[key] || [key, []];
 }
@@ -825,13 +833,14 @@ let HELP_BTN = null;
 function closeHelp() { $("helppop").hidden = true; if (HELP_BTN) HELP_BTN.setAttribute("aria-expanded", "false"); HELP_BTN = null; }
 function openHelp(key, btn) {
   if (HELP_BTN === btn) return closeHelp();
+  const r = btn.getBoundingClientRect();   // запомнить до перерисовки: «?» внутри подсказки исчезнет вместе с ней
   closeHelp();
   const [title, body] = helpContent(key), pop = $("helppop");
   pop.innerHTML = "";
   pop.append(h("div", { class: "hp-head" }, h("b", null, title), h("button", { type: "button", class: "link", onclick: closeHelp }, "закрыть")), ...[].concat(body));
   pop.hidden = false; HELP_BTN = btn; btn.setAttribute("aria-expanded", "true");
   if (!isMobile()) {   // рядом с «?», не вылезая за край окна
-    const r = btn.getBoundingClientRect(), w = pop.offsetWidth, hgt = pop.offsetHeight;
+    const w = pop.offsetWidth, hgt = pop.offsetHeight;
     pop.style.left = Math.max(12, Math.min(r.left - 12, innerWidth - w - 12)) + "px";
     pop.style.top = (r.bottom + 6 + hgt > innerHeight - 8 ? Math.max(8, r.top - hgt - 6) : r.bottom + 6) + "px";
   }
