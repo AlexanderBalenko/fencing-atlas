@@ -330,7 +330,7 @@ const notesOf = id => NOTES.filter(n => n.id === id);
 /* ---------- список ---------- */
 /* ---------- фильтры (2026-10-30): уровень, что развиваем, формат, год, оружие, ещё ---------- */
 const FORM_SHORT = { individual: "индив", group: "группа", "coach-line": "строй", solo: "соло", "solo-lights": "Reaction Lights", sparring: "вольный бой", "task-sparring": "бой с заданием" };
-const TYPES = { training: "развивающие", diagnostic: "проверочные", psyche: "психологические", bout: "бои" };
+const TYPES = { training: "развивающие", diagnostic: "проверочные", overlay: "надстройки", psyche: "психологические", bout: "бои" };
 const FKEY = "atlas-filters-v2";   // v2: край шкалы годов хранится как «без границы» (null), а не как год
 const LAD_SHORT = { atomic: "атом.", coordinated: "согл.", launch: "запуск", recognition: "узнав.", control: "упр. боем", psyche: "психика" };
 let K = [], STEP = {}, YR = [0, 0];
@@ -396,7 +396,8 @@ function weapOk(it, weap, anyW) {
 }
 function typeOk(it, types) {
   if (!types.length) return true;
-  const t = it.kind === "diagnostic" ? ["diagnostic"] : [isBout(it) ? "bout" : null, isPsyche(it) ? "psyche" : null].filter(Boolean);
+  const t = it.kind === "diagnostic" ? ["diagnostic"] : it.kind === "overlay" ? ["overlay", isPsyche(it) ? "psyche" : null].filter(Boolean)
+    : [isBout(it) ? "bout" : null, isPsyche(it) ? "psyche" : null].filter(Boolean);
   if (!t.length) t.push("training");
   return t.some(x => types.includes(x));
 }
@@ -636,7 +637,7 @@ function training(r, it, fieldNotesPrefix) {
       SHOW.scoring ? [h("dt", null, "Зачёт", helpBtn("scoring")), h("dd", null, refText(r.scoring || "—"))] : null,
       SHOW.analytics ? [h("dt", null, "Воздействие на противника", helpBtn("victim")), h("dd", null, listOrDash(r.opponent_victim, c => (V.characters[c] || {}).atlas || c)),
         h("dt", null, "Сознательная нагрузка", helpBtn("load")), h("dd", null, listOrDash(r.engineer_load, l => V.engineer_load[l] || l))] : null),
-    SHOW.regs === "none" || !regRows.length ? null : h("div", { class: "wrapx" }, h("table", { class: "t", style: "margin-top:8px" },
+    SHOW.regs === "none" || !regRows.length || it.kind === "overlay" ? null : h("div", { class: "wrapx" }, h("table", { class: "t", style: "margin-top:8px" },
       h("thead", null, h("tr", null, h("th", null, "Регулятор", helpBtn("regs")), h("th", null, "0–3"), SHOW.regNotes ? h("th", null, "Пояснение") : null)),
       h("tbody", null, regRows))),
   ];
@@ -656,6 +657,7 @@ function renderCard() {
       h("span", null, "уверенность: " + (CONF[it.confidence] || it.confidence || "—")),
       h("span", null, periods.map(p => V.periods[p] || p).join(", ")),
       null),
+    it.kind === "overlay" ? h("p", { class: "ctx" }, "Надстройка над: " + (it.carrier || "любой урок или бой"), helpBtn("overlay")) : null,   // задание поверх носителя (автор 2026-11-02)
     h("hr", { class: "hdiv" }),   // шапка карточки отделена от содержания; кнопки «просмотрено» — только внизу
     blk("Описание", "description", richText(it.description || "—"),
       ITEMS.some(x => (x.then || []).includes(it.id)) ? h("p", { class: "meta" }, "Проверить: ", refText(ITEMS.filter(x => (x.then || []).includes(it.id)).map(x => x.id).join(", "))) : null),
@@ -829,7 +831,8 @@ function helpContent(key) {
       h("p", null, "Вне лестницы — метки: ", Object.values(V.ladder_marks || {}).map(m => m.label + " (" + m.def + ")").join("; "), ".")]],
     train: ["Тренируем", [h("p", null, "Что упражнение развивает. ● — фокус: главное, ради чего упражнение; ◐ — работает попутно."),
       h("p", null, "Перед двоеточием — часть системы, к которой относится навык: ", Object.values(V.characters || {}).map(c => c.atlas).filter(Boolean).join(", ").toLowerCase(), ".")]],
-    goal: ["Цель номера", [h("p", null, "Чего добивается этот номер по отношению к другому:"), lvlList(V.partner_goals || {})]],
+    goal: ["Цель номера", [h("p", null, "Насколько жёстко партнёр или тренер изображает противника. Настоящий противник обманывает, выбирает самые неудобные моменты, не прощает ошибок и не даёт по себе бить:"), lvlList(V.partner_goals || {})]],
+    overlay: ["Надстройка", [h("p", null, "Задание поверх любого урока или боя: своего хода у него нет, оно накладывается на упражнение-носитель («первая попытка после перерыва», «закончить бой с запасом»). Сложность и партнёр — у носителя, поэтому регуляторы здесь не размечены; чему учит — указано.")]],
     errvis: ["Ошибка видна", [h("p", null, "Показывает ли упражнение ошибку само, без тренера:"), lvlList(V.error_visibility_levels || {}),
       h("p", { class: "meta" }, "У упражнений на уверенность вместо этого — «Успех виден»: там важно, чтобы ученик увидел, что получилось.")]],
     errcrit: ["Критерий ошибки", [h("p", null, "По чему судить, что сделано неправильно:"), lvlList(V.error_criteria || {})]],
