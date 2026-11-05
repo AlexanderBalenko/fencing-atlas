@@ -338,7 +338,7 @@ const F0 = () => ({ lvl: -1, steps: [], asps: [], also: false, noHelper: true, f
   y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, video: false, conds: [], status: "", group: "family", topic: "", tcat: "", srcs: [], scat: "" });
 const STATUS = { "": "все", open: "с открытыми заметками", answered: "с разобранными заметками", none: "без заметок", unseen: "непросмотренные", seen: "просмотренные" };
 let F = F0();
-function loadF() { try { const s = JSON.parse(localStorage.getItem(FKEY) || "null"); if (s) F = Object.assign(F0(), s); } catch (e) {} }
+function loadF() { try { const s = JSON.parse(localStorage.getItem(FKEY) || "null"); if (s) F = Object.assign(F0(), s); } catch (e) {} F.steps = (F.steps || []).slice(0, 1); F.asps = (F.asps || []).slice(0, 1); }   // «что развиваем» — один выбор
 function saveF() {   // край шкалы годов — «без границы»: новые источники попадают в диапазон сами
   try { const G = Object.assign({}, F, { y0: F.y0 <= YR[0] ? null : F.y0, y1: F.y1 >= YR[1] ? null : F.y1 }); localStorage.setItem(FKEY, JSON.stringify(G)); } catch (e) {}
 }
@@ -466,12 +466,12 @@ function renderFilters() {
     h("div", { class: "fopt meta" }, F.lvl >= 0 ? "Показаны упражнения, которым хватает того, что уже стоит" : "Кликните по ступени, до которой у группы всё уже стоит"));
   // что развиваем
   box.append(h("div", { class: "fh" }, "Что развиваем", helpBtn("f:dev")),
-    ladPick(i => F.steps.includes(i) ? "t" : "", i => upd(G => { G.steps = tog(G.steps, i); G.asps = G.asps.filter(a => G.steps.includes(STEP[a])); })));
+    ladPick(i => F.steps.includes(i) ? "t" : "", i => upd(G => { G.steps = G.steps.length === 1 && G.steps[0] === i ? [] : [i]; G.asps = G.asps.filter(a => G.steps.includes(STEP[a])); })));   // одна ступень (автор 2026-11-05)
   if (F.steps.length) {
     const wrap = h("div", { class: "chips" });
     for (const i of F.steps.slice().sort()) for (const a of V.ladder[K[i]].aspects || []) {
       const c = ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, { asps: [a] })) ? 1 : 0), 0);
-      wrap.append(chip(aspLabel(a), F.asps.includes(a), c, () => upd(G => { G.asps = tog(G.asps, a); }), aspLabel(a)));
+      wrap.append(chip(aspLabel(a), F.asps.includes(a), c, () => upd(G => { G.asps = G.asps.length === 1 && G.asps[0] === a ? [] : [a]; }), aspLabel(a)));   // и одна задача внутри неё
     }
     box.append(wrap);
   }
