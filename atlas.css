@@ -159,9 +159,9 @@ hr.hdiv{border:0; height:1px; background:linear-gradient(90deg, var(--accent), v
 .ex.seen > span:first-child{color:var(--muted)}
 .ex .tick{color:var(--done); font-weight:600; width:1em; flex:none}
 .progress{height:4px; background:var(--soft); border-radius:2px; overflow:hidden}
-.fbox{border:1px solid var(--line); border-radius:8px; background:var(--surface)}
-.fbox > .fhead{padding:6px 10px; font-weight:600; font-size:.9rem}
-#filters{padding:0 10px 10px}
+.fbox{border:0; background:none}   /* без рамки: панель фильтров и так отделена краем (автор 2026-11-05) */
+.fbox > .fhead{padding:6px 0; font-weight:600; font-size:.9rem}
+#filters{padding:0 0 10px}
 .fh{font-size:.76rem; color:var(--muted); margin:10px 0 5px; font-weight:600}
 .fopt{display:flex; flex-wrap:wrap; gap:2px 12px; font-size:.8rem; margin-top:5px; align-items:center}
 .fopt label{display:inline-flex; gap:4px; align-items:center; cursor:pointer}
