@@ -327,6 +327,14 @@ body.resizing{cursor:col-resize; user-select:none}
 .trow .tw{width:1em; flex:none; color:var(--muted); font-size:.75rem; align-self:center; display:inline-flex; justify-content:center}
 .trow .rd{display:inline-block; width:10px; height:10px; border-radius:50%; border:1.5px solid currentColor; box-sizing:border-box}
 .trow .rd.on{background:currentColor; box-shadow:inset 0 0 0 2px var(--bg)}
+.trow .rd.sq{border-radius:2px}
+.trow .rd.sq.part{background:linear-gradient(currentColor, currentColor) center / 6px 2px no-repeat}   /* выбрана часть периода */
+.trow.grp{padding:0; gap:0}
+.trow.grp button{border:0; border-radius:0; background:none; color:inherit; font:inherit; display:flex; align-items:baseline}
+.trow.grp .tarr{padding:4px 2px 4px 10px; align-self:stretch; align-items:center}
+.trow.grp .tchk{padding:4px 4px; align-self:stretch; align-items:center}
+.trow.grp .texp{flex:1; min-width:0; gap:6px; padding:4px 10px 4px 2px; text-align:left}
+.trow.grp button:hover{background:var(--soft)}   /* квадрат — можно выбрать несколько (источник); круг — одну (тема) */
 .trow.sub .rd.on{box-shadow:inset 0 0 0 2px var(--surface)}
 .trow .tlab{flex:1; min-width:0}
 .trow .tn{font-family:var(--font-data); font-size:.72rem; color:var(--muted)}

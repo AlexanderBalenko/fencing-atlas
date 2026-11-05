@@ -335,7 +335,7 @@ const FKEY = "atlas-filters-v2";   // v2: край шкалы годов хра�
 const LAD_SHORT = { atomic: "атом.", coordinated: "согл.", launch: "запуск", recognition: "узнав.", control: "упр. боем", psyche: "психика" };
 let K = [], STEP = {}, YR = [0, 0];
 const F0 = () => ({ lvl: -1, steps: [], asps: [], also: false, noHelper: true, forms: [], possible: true,
-  y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, video: false, conds: [], status: "", group: "family", topic: "", tcat: "" });
+  y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, video: false, conds: [], status: "", group: "family", topic: "", tcat: "", srcs: [], scat: "" });
 const STATUS = { "": "все", open: "с открытыми заметками", answered: "с разобранными заметками", none: "без заметок", unseen: "непросмотренные", seen: "просмотренные" };
 let F = F0();
 function loadF() { try { const s = JSON.parse(localStorage.getItem(FKEY) || "null"); if (s) F = Object.assign(F0(), s); } catch (e) {} }
@@ -431,6 +431,7 @@ function match(it, G = F, skip = "") {
   if (skip !== "obv" && SHOW.fMore && G.obvious && !obviousOk(it)) return null;
   if (skip !== "topic") { const ts = topicSet(G); if (ts.length && !(it.topics || []).some(t => ts.includes(t))) return null; }
   if (skip !== "cond" && SHOW.fMore && G.conds.length && !(it.conditions || []).some(c => G.conds.includes(c))) return null;
+  if (skip !== "src" && (G.srcs || []).length && !(it.sources || []).some(x => G.srcs.includes(x.source))) return null;   // источник: любой из выбранных
   return { rank, roles: rows.map(([l]) => l).filter(Boolean) };
 }
 function shownList() {
@@ -443,7 +444,7 @@ function shownList() {
 const topicsOf = g => Object.entries(V.topics || {}).filter(([, t]) => t.group === g).map(([k]) => k);
 const topicSet = G => G.topicAny || (G.topic ? [G.topic] : []);   // одна выбранная тема; topicAny — только для счётчиков категорий
 const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, topicSet(F).length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
-  F.weap.length, SHOW.fMore && F.types.length, SHOW.fMore && F.obvious, SHOW.fMore && F.conds.length, F.status].filter(Boolean).length;
+  F.weap.length, (F.srcs || []).length, SHOW.fMore && F.types.length, SHOW.fMore && F.obvious, SHOW.fMore && F.conds.length, F.status].filter(Boolean).length;
 const countIf = (skip, G) => ITEMS.reduce((n, it) => n + (match(it, G, skip) ? 1 : 0), 0);
 function upd(fn) { fn(F); saveF(); renderList(); trackFilters(); }
 const tog = (arr, x) => arr.includes(x) ? arr.filter(y => y !== x) : arr.concat([x]);
@@ -523,6 +524,42 @@ function renderFilters() {
   box.append(h("div", { class: "fh" }, "Год источника ", lab), h("div", { class: "yrs" }, h("span", { class: "trk" }), sel, lo, hi), h("div", { class: "fopt" },
     h("label", null, h("input", { type: "checkbox", checked: F.noYear, onchange: e => upd(G => { G.noYear = e.target.checked; }) }), " и без даты"),
     (F.y0 > YR[0] || F.y1 < YR[1]) ? h("button", { type: "button", class: "link", onclick: () => upd(G => { G.y0 = YR[0]; G.y1 = YR[1]; }) }, "весь диапазон") : null));
+  }
+  // источник: дерево по периодам, выбрать можно несколько (автор 2026-11-05)
+  {
+    const used = {};
+    for (const it of ITEMS) for (const x of it.sources || []) if (SRC[x.source]) used[x.source] = 1;
+    const cnt = G => ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, G)) ? 1 : 0), 0);
+    const sel = (F.srcs || []).filter(k => used[k]);
+    const srcName = k => (SRC[k].short || SRC[k].title);
+    const head = h("div", { class: "tsel-head" }, h("span", { class: "meta" }, "Источник:"),
+      sel.length ? [h("b", null, sel.length <= 2 ? sel.map(srcName).join(", ") : `${sel.length} ${plural(sel.length, "источник", "источника", "источников")}`),
+        h("button", { type: "button", class: "link", title: "Сбросить источники", "aria-label": "Сбросить источники", onclick: () => upd(G => { G.srcs = []; }) }, "✕")]
+        : h("span", { class: "meta" }, "любой"));
+    const tree = h("div", { class: "tsel", role: "tree", "aria-multiselectable": "true" });
+    for (const [p, plab] of Object.entries(V.periods || {})) {
+      const ks = Object.keys(used).filter(k => SRC[k].period === p).sort((a, b) => (SRC[a].year || 0) - (SRC[b].year || 0) || srcName(a).localeCompare(srcName(b), "ru"));
+      if (!ks.length) continue;
+      const open = F.scat === p, n = cnt({ srcs: ks }), inside = sel.filter(k => ks.includes(k)).length, all = inside === ks.length;
+      // строка периода: стрелка — раскрыть, за ней квадрат — выбрать / снять весь период, название — тоже раскрыть (автор 2026-11-05)
+      const toggle = () => upd(G => { G.scat = G.scat === p ? "" : p; });
+      tree.append(h("div", { class: "trow cat grp" + (inside ? " on" : "") + (n ? "" : " zero"), role: "treeitem", "aria-expanded": String(open) },
+        h("button", { type: "button", class: "tarr", "aria-label": (open ? "Свернуть " : "Раскрыть ") + plab, onclick: toggle }, h("span", { class: "tw" }, open ? "▾" : "▸")),
+        h("button", { type: "button", class: "tchk", "aria-pressed": String(all), title: all ? "Снять весь период" : "Выбрать весь период",
+          "aria-label": (all ? "Снять период " : "Выбрать период ") + plab,
+          onclick: () => upd(G => { const rest = (G.srcs || []).filter(k => !ks.includes(k)); G.srcs = all ? rest : rest.concat(ks); }) },
+          h("i", { class: "rd sq" + (all ? " on" : inside ? " part" : "") })),
+        h("button", { type: "button", class: "texp", onclick: toggle },
+          h("span", { class: "tlab" }, capital(plab) + (inside && !all ? ` · выбрано ${inside} из ${ks.length}` : all ? " · весь период" : "")),
+          h("span", { class: "tn" }, n))));
+      if (open) for (const k of ks) {
+        const on = sel.includes(k), m = cnt({ srcs: [k] });
+        tree.append(h("button", { type: "button", class: "trow sub" + (on ? " on" : "") + (m ? "" : " zero"), role: "treeitem", title: SRC[k].title,
+          "aria-selected": String(on), onclick: () => upd(G => { G.srcs = tog(G.srcs || [], k); }) },
+          h("span", { class: "tw" }, h("i", { class: "rd sq" + (on ? " on" : "") })), h("span", { class: "tlab" }, srcName(k)), h("span", { class: "tn" }, m)));
+      }
+    }
+    box.append(h("div", { class: "fh" }, "Источник", helpBtn("f:src")), head, tree);
   }
   // оружие
   const ww = h("div", { class: "chips" });
@@ -955,6 +992,8 @@ function helpContent(key) {
       h("ul", null, h("li", null, "запуск действия по сигналу;"), h("li", null, "выбор между несколькими сигналами — цвет задаёт действие;"),
         h("li", null, "умение не начать раньше времени — «горит / не горит»;"), h("li", null, "подгонку к внезапно появившейся мишени;"), h("li", null, "реакцию ногами.")),
       h("p", null, "Чего не даёт: сигнал всегда простой — огонёк, а не тело и не клинок противника. Читать противника и узнавать ситуации боя на нём не научиться.")]],
+    "f:src": ["Источник", [h("p", null, "Учебники, методики и трактаты, из которых взяты упражнения, — по периодам. Нажмите период — откроется список; отметьте один или несколько источников: покажутся упражнения хотя бы из одного из них. Число — сколько упражнений найдётся."),
+      h("p", null, "Полный список с названиями — на странице ", h("a", { href: "#sources" }, "«Использованные источники»"), ".")]],
     "f:topic": ["Тема", [h("p", null, "Подборка упражнений по предмету — приём, тактика, метод, назначение. Нажмите категорию — откроются её темы; выберите одну. Число у категории — сколько упражнений во всех её темах."),
       ...Object.entries(V.topic_groups || {}).map(([g, d]) => h("p", null, h("b", null, capital(d.label)), ": ", topicsOf(g).map(t => V.topics[t].label).join(", ") + ".",
         d.def ? h("span", { class: "meta" }, " " + capital(d.def) + ".") : null))]],
@@ -1190,6 +1229,7 @@ function filterKeys() {   // включённые фильтры — как ст
   for (const x of F.types || []) out.add("type:" + x);
   for (const x of F.conds || []) out.add("cond:" + x);
   if (F.topic) out.add("topic:" + F.topic);
+  for (const x of F.srcs || []) out.add("source:" + x);
   if (F.obvious) out.add("obvious");
   if (F.video) out.add("video");
   return out;
