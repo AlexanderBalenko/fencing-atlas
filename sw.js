@@ -1,5 +1,5 @@
 /* Атлас упражнений: работа без интернета. Версия меняется с каждой сборкой — старое сохранённое удаляется. */
-const VERSION = "atlas-0437c01492";
+const VERSION = "atlas-c06ba92652";
 const CORE = ["./", "card.html", "atlas.css?v=fd47d99851", "atlas.js?v=b7fa7dfd6e", "data.js?v=3ffb3ec8f7", "manifest.webmanifest", "assets/apple-touch-icon.png", "assets/emblem.png", "assets/favicon.png", "assets/icon-192.png", "assets/icon-512.png"];
 const SCOPE = new URL("./", self.registration.scope);
 const abs = p => new URL(p, SCOPE).href;
