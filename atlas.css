@@ -310,6 +310,7 @@ body.resizing{cursor:col-resize; user-select:none}
 .about li::marker{color:var(--accent); font-weight:600}
 .about a{color:var(--accent); text-decoration-thickness:1px; text-underline-offset:2px}
 .about .go{margin-top:18px; display:none}
+.about p.img{margin:4px 0 1em} .about p.img img{display:block; width:180px; max-width:100%; height:auto; border-radius:8px; border:1px solid var(--line)}
 .batchmark{display:inline-block; font-size:.74rem; font-weight:600; padding:1px 9px; border-radius:9px; margin:2px 0 4px;
   background:color-mix(in srgb, var(--open) 18%, transparent); color:var(--open)}
 /* фильтр «Тема»: дерево категорий и тем */
