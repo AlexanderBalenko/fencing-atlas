@@ -335,7 +335,7 @@ const FKEY = "atlas-filters-v2";   // v2: край шкалы годов хра�
 const LAD_SHORT = { atomic: "атом.", coordinated: "согл.", launch: "запуск", recognition: "узнав.", control: "упр. боем", psyche: "психика" };
 let K = [], STEP = {}, YR = [0, 0];
 const F0 = () => ({ lvl: -1, steps: [], asps: [], also: false, noHelper: true, forms: [], possible: true,
-  y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, conds: [], status: "", group: "family", topic: "", tcat: "" });
+  y0: null, y1: null, noYear: true, weap: [], anyW: true, types: [], obvious: false, video: false, conds: [], status: "", group: "family", topic: "", tcat: "" });
 const STATUS = { "": "все", open: "с открытыми заметками", answered: "с разобранными заметками", none: "без заметок", unseen: "непросмотренные", seen: "просмотренные" };
 let F = F0();
 function loadF() { try { const s = JSON.parse(localStorage.getItem(FKEY) || "null"); if (s) F = Object.assign(F0(), s); } catch (e) {} }
@@ -403,6 +403,7 @@ function typeOk(it, types) {
 }
 const obviousOk = it => roleRows(it).some(([, r]) => ((r.error_visibility || {}).level || []).includes("obvious"));
 function baseOk(it) {   // поиск и статус разбора — как раньше
+  if (F.video && !VCOUNT[it.id]) return false;   // «есть видео»
   const q = $("q").value.trim().toLowerCase();
   if (q) {
     const hay = [it.name, it.id, it.family, it.description, it.comment].join(" ").toLowerCase();
@@ -530,13 +531,14 @@ function renderFilters() {
   box.append(h("div", { class: "fh" }, "Оружие"), ww, h("div", { class: "fopt" },
     h("label", null, h("input", { type: "checkbox", checked: F.anyW, onchange: e => upd(G => { G.anyW = e.target.checked; }) }), " включая универсальные (любое оружие)")));
   // ещё
-  const more = h("details", { class: "more", open: (F.types.length || F.obvious || F.conds.length || F.status) ? true : null }, h("summary", null, PUBLIC ? "Ещё: тип, наглядность ошибки, условия" : "Ещё: тип, наглядность ошибки, условия, разбор"));
+  const more = h("details", { class: "more", open: (F.types.length || F.obvious || F.video || F.conds.length || F.status) ? true : null }, h("summary", null, PUBLIC ? "Ещё: тип, наглядность ошибки, видео, условия" : "Ещё: тип, наглядность ошибки, условия, разбор"));
   const tw = h("div", { class: "chips" });
   for (const [t, l] of Object.entries(TYPES)) tw.append(chip(l, F.types.includes(t), ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, { types: [t] })) ? 1 : 0), 0), () => upd(G => { G.types = tog(G.types, t); })));
   const cw = h("div", { class: "chips" });
   for (const [c, d] of Object.entries(V.conditions || {})) cw.append(chip(d.label, F.conds.includes(c), ITEMS.reduce((m, it) => m + (match(it, Object.assign({}, F, { conds: [c] })) ? 1 : 0), 0), () => upd(G => { G.conds = tog(G.conds, c); })));
   more.append(h("div", { class: "fh" }, "Тип"), tw,
     h("div", { class: "fopt" }, h("label", { title: V.error_visibility_levels.obvious }, h("input", { type: "checkbox", checked: F.obvious, onchange: e => upd(G => { G.obvious = e.target.checked; }) }), " ошибка видна сама (наглядная)")),
+    PUBLIC ? h("div", { class: "fopt" }, h("label", null, h("input", { type: "checkbox", checked: F.video, onchange: e => upd(G => { G.video = e.target.checked; }) }), ` есть видео (${Object.keys(VCOUNT).filter(k => byId.has(k)).length})`)) : "",
     h("div", { class: "fh" }, "Условия"), cw,
     PUBLIC ? "" : h("div", null, h("div", { class: "fh" }, "Разбор"), h("div", { class: "chips" }, Object.entries(STATUS).filter(([k]) => k).map(([k, l]) =>
       chip(l, F.status === k, null, () => upd(G => { G.status = G.status === k ? "" : k; }))),
@@ -593,6 +595,7 @@ function renderList() {
       h("span", { class: "info" }, h("span", { class: "nm" }, it.name),
         SHOW.listSource || who ? h("span", { class: "sm" }, [SHOW.listSource ? src[0] + (src.length > 1 ? ` +${src.length - 1}` : "") : "", SHOW.listSource ? wpn.join(", ") : "", who].filter(Boolean).join(" · ")) : null),
       SHOW.listLadder ? miniLadder(it, trainedRows(it).filter(([l]) => !who || l === m.roles[0]).map(([, r]) => r)) : null,
+      VCOUNT[it.id] ? h("span", { class: "cmt", title: "видео к упражнению" }, "▶ " + VCOUNT[it.id]) : null,
       SHOW.discussion && CCOUNT[it.id] ? h("span", { class: "cmt", title: "комментариев в обсуждении" }, "💬 " + CCOUNT[it.id]) : null,
       o ? h("span", { class: "badge open", title: "открытых заметок" }, o) : null,
       d ? h("span", { class: "badge done", title: "разобранных заметок" }, "✓" + d) : null));
@@ -726,15 +729,66 @@ function renderCard() {
     })),
     PUBLIC ? null : (it.excerpts || []).length ? h("button", { type: "button", onclick: e => loadExcerpts(it.id, exBox, e.currentTarget) }, "Показать полный текст источников") : h("p", { class: "meta" }, "Адресов фрагментов нет."),
     exBox));
+  if (PUBLIC) m.append(videoBlock(it));
   if (PUBLIC && SHOW.discussion) m.append(discussionBlock(it));
   m.append(revbar(it, true));   // те же кнопки внизу — чтобы не листать наверх
   box.scrollTop = 0;
 }
 /* ---------- обсуждение карточки (публичная версия): Cloudflare Worker + невидимый Turnstile ---------- */
 const COMMENTS = { api: "https://fencing-atlas-comments.balenko.workers.dev", sitekey: "0x4AAAAAAFt65TCDXGX1G62e" };
-let CCOUNT = {};
+let CCOUNT = {}, VCOUNT = {};
 async function loadCounts() {
   try { CCOUNT = await fetch(COMMENTS.api + "/counts").then(r => r.json()); renderList(); } catch (e) {}
+  try { VCOUNT = await fetch(COMMENTS.api + "/vcounts").then(r => r.json()); renderList(); } catch (e) {}
+}
+/* ---------- видео к карточке (автор 2026-11-05): разборы VK Видео; предлагает любой, показываются после одобрения.
+   Плеер VK не грузится, пока посетитель сам не нажмёт «Смотреть» — без чужих скриптов на странице по умолчанию. ---------- */
+const vkEmbed = v => `https://vk.com/video_ext.php?oid=${encodeURIComponent(v.oid)}&id=${encodeURIComponent(v.vid)}&hd=2&autoplay=1` + (v.hash ? `&hash=${encodeURIComponent(v.hash)}` : "");
+const vkPage = v => `https://vkvideo.ru/video${v.oid}_${v.vid}`;
+function videoBlock(it) {
+  const list = h("div", { class: "vlist" }, h("p", { class: "meta" }, "Загружаю…"));
+  const one = v => {
+    const frame = h("div", { class: "vframe" }, h("button", { type: "button", class: "vplay", onclick: e => {
+      const f = h("iframe", { src: vkEmbed(v), allow: "autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock", allowfullscreen: true, frameborder: "0", title: v.title || "Видео" });
+      e.currentTarget.replaceWith(f); track("video", it.id);
+    } }, h("span", { class: "ic", "aria-hidden": "true" }, "▶"), " Смотреть"));
+    return h("div", { class: "vitem" }, h("div", { class: "vhead" }, h("b", null, v.title || "Разбор"), v.who ? h("span", { class: "meta" }, " · " + v.who) : null,
+      h("a", { href: vkPage(v), target: "_blank", rel: "noopener", class: "meta vext" }, "открыть в VK")), frame);
+  };
+  const load = async () => {
+    try {
+      const rows = await fetch(COMMENTS.api + "/videos?card=" + encodeURIComponent(it.id)).then(r => r.json());
+      if (!cur || cur.id !== it.id) return;
+      list.innerHTML = "";
+      if (!rows.length) list.append(h("p", { class: "meta" }, "Видео к этому упражнению пока нет. Есть свой разбор — предложите его ниже."));
+      rows.forEach(v => list.append(one(v)));
+    } catch (e) { list.innerHTML = ""; list.append(h("p", { class: "meta" }, navigator.onLine === false ? "Видео доступны, когда есть интернет." : "Видео сейчас не загрузились.")); }
+  };
+  const msg = h("div", { class: "msg" }), holder = h("div");
+  const url = h("input", { type: "url", placeholder: "Ссылка на ролик VK Видео", "aria-label": "Ссылка на ролик VK Видео", maxlength: "400" });
+  const title = h("input", { type: "text", placeholder: "О чём ролик: разбор, ошибки, режим 2…", "aria-label": "О чём ролик", maxlength: "200" });
+  let saved = ""; try { saved = localStorage.getItem("atlas-cname") || ""; } catch (e) {}
+  const who = h("input", { type: "text", placeholder: "Автор или школа (необязательно)", "aria-label": "Автор или школа", maxlength: "60", value: saved });
+  const btn = h("button", { type: "submit", class: "primary" }, "Предложить видео");
+  const form = h("form", { class: "vform", onsubmit: async e => {
+    e.preventDefault();
+    if (!/^https?:\/\/(m\.)?(vk\.com|vkvideo\.ru|vk\.ru)\//.test(url.value.trim())) { msg.className = "msg err"; msg.textContent = "Нужна ссылка на ролик VK Видео — вида vkvideo.ru/video-123_456."; url.focus(); return; }
+    btn.disabled = true; msg.className = "msg"; msg.textContent = "Отправляю…";
+    try {
+      const token = await turnstileToken(holder);
+      const r = await fetch(COMMENTS.api + "/videos", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card: it.id, url: url.value.trim(), title: title.value.trim(), by: who.value.trim(), token }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "не отправилось");
+      url.value = ""; title.value = ""; msg.textContent = "Спасибо! Видео появится здесь после проверки автором атласа.";
+      track("video-offer", it.id);
+    } catch (err) { msg.className = "msg err"; msg.textContent = "Не отправилось: " + err.message; }
+    finally { btn.disabled = false; }
+  } }, url, title, h("div", { class: "row" }, who, btn), msg, holder,
+    h("div", { class: "fine" }, "Свой разбор или показ упражнения: загрузите ролик в VK Видео и пришлите ссылку. Видео появится после проверки."));
+  load();
+  return h("section", { class: "blk disc", id: "videos" }, h("h3", null, "Видео"), list,
+    h("details", { class: "voffer" }, h("summary", null, "Предложить своё видео"), form));
 }
 let TS = null;   // загрузка скрипта Turnstile — один раз, по требованию
 function turnstileReady() {
@@ -1096,6 +1150,7 @@ function filterKeys() {   // включённые фильтры — как ст
   for (const x of F.conds || []) out.add("cond:" + x);
   if (F.topic) out.add("topic:" + F.topic);
   if (F.obvious) out.add("obvious");
+  if (F.video) out.add("video");
   return out;
 }
 function trackFilters() {
