@@ -1,6 +1,6 @@
 /* Атлас упражнений: работа без интернета. Версия меняется с каждой сборкой — старое сохранённое удаляется. */
-const VERSION = "atlas-1574bba339";
-const CORE = ["./", "card.html", "atlas.css?v=63e1c5a08b", "atlas.js?v=880fc28f9f", "data.js?v=e1060ce8a2", "manifest.webmanifest", "assets/apple-touch-icon.png", "assets/donate-qr.png", "assets/emblem.png", "assets/favicon.png", "assets/icon-192.png", "assets/icon-512.png"];
+const VERSION = "atlas-25c13daf59";
+const CORE = ["./", "card.html", "atlas.css?v=818a9f4006", "atlas.js?v=669ef66a62", "data.js?v=bc71674dbb", "manifest.webmanifest", "assets/apple-touch-icon.png", "assets/donate-qr.png", "assets/emblem.png", "assets/favicon.png", "assets/icon-192.png", "assets/icon-512.png"];
 const SCOPE = new URL("./", self.registration.scope);
 const abs = p => new URL(p, SCOPE).href;
 self.addEventListener("install", e => {

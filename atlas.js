@@ -645,7 +645,7 @@ function training(r, it, fieldNotesPrefix) {
 function renderCard() {
   const it = cur, box = $("card"); box.innerHTML = "";
   const m = { append: (...xs) => box.append(...xs.flat().filter(x => x != null && x !== false)) };
-  if (!it) { renderAbout(box); return; }
+  if (!it) { PAGE === "sources" ? renderSources(box) : renderAbout(box); return; }
   const periods = [...new Set((it.sources || []).map(s => (SRC[s.source] || {}).period).filter(Boolean))];
   m.append(
     famNav(it),
@@ -1108,8 +1108,37 @@ function renderAbout(box) {
   box.scrollTop = 0;
   try { localStorage.setItem("atlas-about-seen", "1"); } catch (e) {}
 }
+/* список использованных источников (автор 2026-11-05): по периодам, внутри — по году; сколько упражнений опирается на источник */
+let PAGE = "about";
+function renderSources(box) {
+  const cnt = {};
+  for (const x of ITEMS) for (const k of new Set((x.sources || []).map(s => s.source))) cnt[k] = (cnt[k] || 0) + 1;
+  const keys = Object.keys(cnt).filter(k => SRC[k]);
+  const ys = keys.map(k => SRC[k].year).filter(Number.isFinite);
+  const art = h("article", { class: "about srcpage" },
+    h("h1", null, "Использованные источники"),
+    h("p", null, `${keys.length} ${plural(keys.length, "источник", "источника", "источников")}` + (ys.length ? `, ${Math.min(...ys)}–${Math.max(...ys)}` : "") +
+      ". Число справа — сколько упражнений атласа опирается на источник."),
+    Object.keys(V.periods || {}).map(p => {
+      const ks = keys.filter(k => SRC[k].period === p).sort((a, b) => (SRC[a].year || 0) - (SRC[b].year || 0) || SRC[a].title.localeCompare(SRC[b].title, "ru"));
+      return ks.length ? [h("h2", null, V.periods[p]), h("ul", { class: "srclist" }, ks.map(k => h("li", null,
+        h("span", { class: "st" }, SRC[k].title, SRC[k].year && !String(SRC[k].title).includes(String(SRC[k].year)) ? `, ${SRC[k].year}` : ""),
+        h("span", { class: "sn", title: "упражнений в атласе" }, String(cnt[k])))))] : null;
+    }),
+    h("p", null, h("a", { href: listURL(), onclick: goHome }, "← На главную")));
+  box.append(art);
+  box.scrollTop = 0;
+}
+function showSources(push) {
+  if (push) history.pushState(null, "", cardURL("sources"));
+  if (cur) LAST = cur;
+  cur = null; PAGE = "sources"; document.title = "Использованные источники — Атлас упражнений";
+  renderCard(); renderNotes(); renderList();
+  if (isMobile()) showView("about");
+}
 let LAST = null;   // упражнение, открытое до главной: вкладка «Карточка» вернёт к нему
 function showAbout(push) {
+  PAGE = "about";
   if (push) history.pushState({ about: true }, "", listURL());
   if (cur) LAST = cur;
   cur = null; document.title = "Атлас упражнений";
@@ -1119,11 +1148,12 @@ function showAbout(push) {
 function onRoute() {   // «назад» / «вперёд» и переходы по ссылкам
   const id = urlId();
   if (byId.has(id)) { if (!cur || cur.id !== id) openEx(id); if (isMobile()) showView("card"); }
+  else if (id === "sources") showSources(false);
   else if (!id && (history.state || {}).about) showAbout(false);
   else if (!id && isMobile()) showView("list");   // «назад» из карточки
   else if (!id) showAbout(false);
 }
-const goHome = e => { if (e) e.preventDefault(); if (cur || (isMobile() && document.body.dataset.view !== "about")) showAbout(true); };
+const goHome = e => { if (e) e.preventDefault(); if (cur || PAGE !== "about" || (isMobile() && document.body.dataset.view !== "about")) showAbout(true); };
 $("view-btn").onclick = openView;
 $("viewpanel").onclick = e => { if (e.target === $("viewpanel")) closeView(); };
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("viewpanel").hidden) closeView(); });
@@ -1132,6 +1162,8 @@ $("home-link").onclick = goHome;
 window.addEventListener("popstate", onRoute);
 window.addEventListener("hashchange", onRoute);
 document.addEventListener("click", e => {   // ссылки на другие упражнения в тексте — без перезагрузки страницы
+  const sp = e.target.closest('a[href="#sources"]');   // ссылка на список источников со стартовой
+  if (sp && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.button) { e.preventDefault(); showSources(true); return; }
   const a = e.target.closest("a.ref[data-id]");
   if (!a || !PUBLIC || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
   e.preventDefault(); history.pushState(null, "", cardURL(a.dataset.id)); onRoute(); window.scrollTo(0, 0);
@@ -1176,6 +1208,7 @@ document.addEventListener("keydown", e => {
     const start = urlId();
     let seen = false; try { seen = localStorage.getItem("atlas-about-seen") === "1"; } catch (e) {}
     if (byId.has(start)) { openEx(start); showView(isMobile() ? "card" : "list"); }
+    else if (start === "sources") { showView("list"); showSources(false); }
     else if (isMobile() && seen) { cur = null; renderCard(); renderNotes(); renderList(); showView("list"); }
     else { showView("list"); showAbout(false); }   // стартовая страница: на телефоне — при первом заходе
   } catch (e) {
