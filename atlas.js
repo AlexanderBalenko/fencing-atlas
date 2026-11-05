@@ -1069,7 +1069,7 @@ setTheme(themeNow(), false);
 $("theme").onclick = () => setTheme(themeNow() === "dark" ? "light" : "dark", true);
 /* ширина панелей фильтров и списка: тянуть за край мышью или стрелками с клавиатуры; запоминается в браузере */
 (function initResize() {
-  const KEY = "atlas-cols", MIN = 220, MAX = 640, MAIN_MIN = 380, ST = { aside: "--wa", side: "--ws" };
+  const KEY = "atlas-cols", MIN = 220, MAX = 640, MAIN_MIN = 480, ST = { aside: "--wa", side: "--ws" };
   let w = {};
   try { w = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
   const apply = () => { for (const k in ST) { if (w[k]) document.body.style.setProperty(ST[k], w[k] + "px"); else document.body.style.removeProperty(ST[k]); } };

@@ -19,8 +19,8 @@
 *{box-sizing:border-box}
 html,body{height:100%; margin:0}
 body{background:var(--bg); color:var(--fg); font:14px/1.45 var(--font-ui); display:grid;
-  grid-template-columns:var(--wa, minmax(260px, 320px)) minmax(0, 1fr) var(--ws, minmax(300px, 400px)); grid-template-rows:100%}
-@media (max-width: 1100px){ body{grid-template-columns:var(--wa, minmax(240px, 300px)) minmax(0, 1fr); grid-template-rows:auto} #side{grid-column:1 / -1; max-height:70vh; border-left:0; border-top:1px solid var(--line)} }
+  grid-template-columns:var(--wa, minmax(300px, 420px)) minmax(480px, 1fr) var(--ws, minmax(260px, 420px)); grid-template-rows:100%}   /* 420 — чтобы «упр. боем» в фильтре уровня шло в одну строку (автор 2026-11-05) */
+@media (max-width: 1100px){ body{grid-template-columns:var(--wa, minmax(240px, 420px)) minmax(360px, 1fr); grid-template-rows:auto} #side{grid-column:1 / -1; max-height:70vh; border-left:0; border-top:1px solid var(--line)} }
 @media (max-width: 700px){ body{display:block} aside, main, #side{border:0!important} #list{max-height:50vh} }
 button, input, select, textarea{font:inherit; color:inherit}
 button{padding:5px 11px; border:1px solid var(--line); border-radius:6px; background:var(--surface); cursor:pointer}
