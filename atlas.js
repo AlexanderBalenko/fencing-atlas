@@ -745,9 +745,25 @@ async function loadCounts() {
    Плеер VK не грузится, пока посетитель сам не нажмёт «Смотреть» — без чужих скриптов на странице по умолчанию. ---------- */
 const vkEmbed = v => `https://vk.com/video_ext.php?oid=${encodeURIComponent(v.oid)}&id=${encodeURIComponent(v.vid)}&hd=2&autoplay=1` + (v.hash ? `&hash=${encodeURIComponent(v.hash)}` : "");
 const vkPage = v => `https://vkvideo.ru/video${v.oid}_${v.vid}`;
+const mediaURL = v => COMMENTS.api + "/media/" + v.rkey.split("/").map(encodeURIComponent).join("/");
+let MEDIA_INFO = null;   // можно ли загружать файлы и какой предел (обработчик, /media-info)
+const mediaInfo = () => MEDIA_INFO || (MEDIA_INFO = fetch(COMMENTS.api + "/media-info").then(r => r.json()).catch(() => ({ enabled: false })));
+function uploadVideo(file, q, onProgress) {   // XMLHttpRequest — чтобы показать, сколько загрузилось
+  return new Promise((ok, no) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", COMMENTS.api + "/upload?" + new URLSearchParams(q));
+    x.setRequestHeader("Content-Type", file.type || (/\.mov$/i.test(file.name) ? "video/quicktime" : /\.webm$/i.test(file.name) ? "video/webm" : "video/mp4"));
+    x.upload.onprogress = e => e.lengthComputable && onProgress(e.loaded / e.total);
+    x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch (e) {} x.status < 300 ? ok(j) : no(new Error(j.error || "не загрузилось (" + x.status + ")")); };
+    x.onerror = () => no(new Error("связь прервалась"));
+    x.send(file);
+  });
+}
 function videoBlock(it) {
   const list = h("div", { class: "vlist" }, h("p", { class: "meta" }, "Загружаю…"));
   const one = v => {
+    if (v.kind === "file") return h("div", { class: "vitem" }, h("div", { class: "vhead" }, h("b", null, v.title || "Видео"), v.who ? h("span", { class: "meta" }, " · " + v.who) : null),
+      h("video", { class: "vfile", src: mediaURL(v), controls: true, preload: "metadata", playsinline: true, onplay: () => track("video", it.id) }));
     const frame = h("div", { class: "vframe" }, h("button", { type: "button", class: "vplay", onclick: e => {
       const f = h("iframe", { src: vkEmbed(v), allow: "autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock", allowfullscreen: true, frameborder: "0", title: v.title || "Видео" });
       e.currentTarget.replaceWith(f); track("video", it.id);
@@ -786,9 +802,34 @@ function videoBlock(it) {
     finally { btn.disabled = false; }
   } }, url, title, h("div", { class: "row" }, who, btn), msg, holder,
     h("div", { class: "fine" }, "Свой разбор или показ упражнения: загрузите ролик в VK Видео и пришлите ссылку. Видео появится после проверки."));
+  // файл с телефона или компьютера — в хранилище атласа; показывается после проверки
+  const fmsg = h("div", { class: "msg" }), fholder = h("div"), bar = h("progress", { max: "1", value: "0", hidden: true });
+  const file = h("input", { type: "file", accept: "video/*", "aria-label": "Файл видео" });
+  const ftitle = h("input", { type: "text", placeholder: "О чём ролик", "aria-label": "О чём ролик", maxlength: "200" });
+  const fwho = h("input", { type: "text", placeholder: "Автор или школа (необязательно)", "aria-label": "Автор или школа", maxlength: "60", value: saved });
+  const fbtn = h("button", { type: "submit", class: "primary" }, "Загрузить");
+  const ffine = h("div", { class: "fine" }, "Короткий ролик прямо с телефона: показ упражнения, ошибка и её исправление. Видео появится после проверки.");
+  const fform = h("form", { class: "vform", hidden: true, onsubmit: async e => {
+    e.preventDefault();
+    const fl = file.files[0], info = await mediaInfo();
+    if (!fl) { fmsg.className = "msg err"; fmsg.textContent = "Выберите файл видео."; return; }
+    if (info.max && fl.size > info.max) { fmsg.className = "msg err"; fmsg.textContent = `Файл ${Math.round(fl.size / 1048576)} МБ — больше ${Math.round(info.max / 1048576)} МБ. Укоротите ролик или загрузите в VK и пришлите ссылку выше.`; return; }
+    fbtn.disabled = true; fmsg.className = "msg"; fmsg.textContent = "Проверка «не робот»…"; bar.hidden = false; bar.value = 0;
+    try {
+      const token = await turnstileToken(fholder);
+      fmsg.textContent = "Загружаю…";
+      await uploadVideo(fl, { card: it.id, title: ftitle.value.trim(), who: fwho.value.trim(), token }, p => { bar.value = p; fmsg.textContent = `Загружаю… ${Math.round(p * 100)} %`; });
+      file.value = ""; ftitle.value = ""; fmsg.textContent = "Спасибо! Видео появится здесь после проверки автором атласа.";
+      track("video-offer", it.id);
+    } catch (err) { fmsg.className = "msg err"; fmsg.textContent = "Не загрузилось: " + err.message; }
+    finally { fbtn.disabled = false; bar.hidden = true; }
+  } }, file, ftitle, h("div", { class: "row" }, fwho, fbtn), bar, fmsg, fholder, ffine);
+  mediaInfo().then(i => { if (i && i.enabled) { fform.hidden = false; const hd = document.getElementById("vf-head-" + it.id); if (hd) hd.hidden = false; ffine.textContent = `Короткий ролик прямо с телефона, до ${Math.round(i.max / 1048576)} МБ: показ упражнения, ошибка и её исправление. Видео появится после проверки.`; } });
   load();
   return h("section", { class: "blk disc", id: "videos" }, h("h3", null, "Видео"), list,
-    h("details", { class: "voffer" }, h("summary", null, "Предложить своё видео"), form));
+    h("details", { class: "voffer" }, h("summary", null, "Предложить своё видео"),
+      h("div", { class: "fh" }, "Ссылкой на VK Видео"), form,
+      h("div", { class: "fh", hidden: true, id: "vf-head-" + it.id }, "Файлом с телефона или компьютера"), fform));
 }
 let TS = null;   // загрузка скрипта Turnstile — один раз, по требованию
 function turnstileReady() {
