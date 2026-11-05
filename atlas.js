@@ -4,7 +4,7 @@ const themeNow = () => document.documentElement.dataset.theme || (darkSys() ? "d
 function setTheme(t, save) {
   document.documentElement.dataset.theme = t;
   const b = document.getElementById("theme");
-  if (b) { b.textContent = t === "dark" ? "☀" : "☾"; b.title = t === "dark" ? "Светлая тема" : "Тёмная тема"; b.setAttribute("aria-label", b.title); }
+  if (b) { b.innerHTML = t === "dark" ? '<span class="ic" aria-hidden="true">☀</span>Светлая тема' : '<span class="ic" aria-hidden="true">☾</span>Тёмная тема'; b.title = "Сменить тему"; }
   if (save) try { localStorage.setItem("atlas-theme", t); } catch (e) {}
 }
 try { const t = localStorage.getItem("atlas-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
@@ -1067,6 +1067,32 @@ $("tree-collapse").onclick = () => { COLLAPSED = new Set(ITEMS.map(x => x.family
 $("tree-expand").onclick = () => { COLLAPSED = new Set(); saveCollapsed(); renderList(); };
 setTheme(themeNow(), false);
 $("theme").onclick = () => setTheme(themeNow() === "dark" ? "light" : "dark", true);
+/* ширина панелей фильтров и списка: тянуть за край мышью или стрелками с клавиатуры; запоминается в браузере */
+(function initResize() {
+  const KEY = "atlas-cols", MIN = 220, MAX = 640, MAIN_MIN = 380, ST = { aside: "--wa", side: "--ws" };
+  let w = {};
+  try { w = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
+  const apply = () => { for (const k in ST) { if (w[k]) document.body.style.setProperty(ST[k], w[k] + "px"); else document.body.style.removeProperty(ST[k]); } };
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(w)); } catch (e) {} };
+  const other = k => { const el = k === "aside" ? $("side") : document.querySelector("aside"); return el && el.offsetParent ? el.getBoundingClientRect().width : 0; };
+  const clamp = (k, x) => Math.round(Math.max(MIN, Math.min(MAX, x, innerWidth - other(k) - MAIN_MIN)));
+  const cur = k => (k === "aside" ? document.querySelector("aside") : $("side")).getBoundingClientRect().width;
+  apply();
+  for (const [k, id] of [["aside", "rsz-aside"], ["side", "rsz-side"]]) {
+    const h = $(id); if (!h) continue;
+    h.addEventListener("pointerdown", e => {
+      e.preventDefault(); h.setPointerCapture(e.pointerId); h.classList.add("drag"); document.body.classList.add("resizing");
+      const move = ev => { w[k] = clamp(k, k === "aside" ? ev.clientX : innerWidth - ev.clientX); apply(); };
+      const up = () => { h.removeEventListener("pointermove", move); h.removeEventListener("pointerup", up); h.classList.remove("drag"); document.body.classList.remove("resizing"); save(); };
+      h.addEventListener("pointermove", move); h.addEventListener("pointerup", up);
+    });
+    h.addEventListener("dblclick", () => { delete w[k]; apply(); save(); });
+    h.addEventListener("keydown", e => {
+      const d = e.key === "ArrowRight" ? 16 : e.key === "ArrowLeft" ? -16 : 0; if (!d) return;
+      e.preventDefault(); w[k] = clamp(k, cur(k) + (k === "aside" ? d : -d)); apply(); save();
+    });
+  }
+})();
 $("note-form").onsubmit = addNote;
 $("nt-text").onkeydown = e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(e); };
 /* Стартовая страница: на компьютере — в центре, пока не открыто упражнение; на телефоне — при первом заходе и по «?» */
@@ -1098,7 +1124,6 @@ function onRoute() {   // «назад» / «вперёд» и переходы 
   else if (!id) showAbout(false);
 }
 const goHome = e => { if (e) e.preventDefault(); if (cur || (isMobile() && document.body.dataset.view !== "about")) showAbout(true); };
-$("about-btn").onclick = goHome;
 $("view-btn").onclick = openView;
 $("viewpanel").onclick = e => { if (e.target === $("viewpanel")) closeView(); };
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("viewpanel").hidden) closeView(); });

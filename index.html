@@ -15,23 +15,26 @@
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=PT+Mono&display=swap">
-<link rel="stylesheet" href="atlas.css?v=fd47d99851">
+<link rel="stylesheet" href="atlas.css?v=902ac20e84">
 </head>
 <body>
 <aside>
   <header>
-    <div class="titlebar"><h1><a href="./" id="home-link" title="Главная: что это и как с ним работать"><span class="logo" aria-hidden="true"></span>Атлас упражнений</a></h1><button type="button" id="about-btn" title="Главная: что это и как с ним работать" aria-label="Главная"><span aria-hidden="true">⌂</span> Главная</button><button type="button" id="view-btn" title="Вид: что показывать в карточке" aria-label="Вид: что показывать" hidden>⚙</button><button type="button" id="theme" aria-label="Сменить тему" title="Сменить тему"></button><a id="mod-link" href="/moderate" hidden title="Модерация обсуждений сайта">💬 модерация</a></div>
+    <div class="titlebar"><h1><a href="./" id="home-link" title="Главная: что это и как с ним работать"><span class="logo" aria-hidden="true"></span>Атлас упражнений</a></h1><a id="mod-link" href="/moderate" hidden title="Модерация обсуждений сайта">💬 модерация</a></div>
     <div class="row"><input type="search" id="q" placeholder="Поиск: название, семейство, текст" aria-label="Поиск"></div>
     <div class="meta" id="count"></div>
     <div class="progress" aria-hidden="true"><span id="progress"></span></div>
   </header>
   <div class="fscroll"><div class="fbox" id="fbox"><div class="fhead">Фильтры <span class="meta" id="fsum"></span></div><div id="filters"></div></div></div>
+  <div class="abar"><button type="button" id="view-btn" title="Что показывать в карточке" hidden><span class="ic" aria-hidden="true">⚙</span>Вид карточки</button><button type="button" id="theme" title="Сменить тему"></button></div>
   <div class="fshow"><button type="button" class="primary" id="fshow">Показать</button></div>
+  <div class="rsz" id="rsz-aside" role="separator" aria-orientation="vertical" aria-label="Ширина панели фильтров" tabindex="0" title="Потяните, чтобы изменить ширину; двойной щелчок — по умолчанию"></div>
 </aside>
 
 <main id="card"><p class="empty">Загружаю…</p></main>
 
 <section id="side" aria-label="Упражнения и заметки">
+  <div class="rsz" id="rsz-side" role="separator" aria-orientation="vertical" aria-label="Ширина списка упражнений" tabindex="0" title="Потяните, чтобы изменить ширину; двойной щелчок — по умолчанию"></div>
   <div class="sidehead"><h3>Упражнения</h3><button type="button" class="link" id="tree-collapse" title="Свернуть все семейства, кроме открытого">свернуть</button><button type="button" class="link" id="tree-expand">развернуть</button></div>
   <div id="list"></div>
   <details id="notes"><summary>Заметки <span class="meta" id="notes-meta"></span></summary><div class="nbody">
@@ -58,6 +61,6 @@
 </nav>
 
 <script src="data.js?v=3ffb3ec8f7"></script>
-<script src="atlas.js?v=b7fa7dfd6e"></script>
+<script src="atlas.js?v=1b36898931"></script>
 </body>
 </html>
