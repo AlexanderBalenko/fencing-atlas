@@ -63,7 +63,7 @@ function loadView() {
 }
 function saveView() { try { localStorage.setItem(VKEY, JSON.stringify(SHOW)); } catch (e) {} }
 const presetNow = () => Object.keys(VIEW_PRESETS).find(p => Object.entries(VIEW_PRESETS[p].v).every(([k, v]) => SHOW[k] === v)) || "";
-function setView(fn) { fn(SHOW); saveView(); renderViewPanel(); renderCard(); renderList(); }
+function setView(fn) { fn(SHOW); saveView(); renderViewPanel(); renderCard(); renderList(); track("view", presetNow() || "своя настройка"); }
 function renderViewPanel() {
   const box = $("vp"); box.innerHTML = "";
   const pn = presetNow();
@@ -444,7 +444,7 @@ const topicSet = G => G.topicAny || (G.topic ? [G.topic] : []);   // одна в
 const activeCount = () => [F.lvl >= 0, F.steps.length || F.asps.length, F.forms.length, topicSet(F).length, SHOW.fYear && (F.y0 > YR[0] || F.y1 < YR[1] || !F.noYear),
   F.weap.length, SHOW.fMore && F.types.length, SHOW.fMore && F.obvious, SHOW.fMore && F.conds.length, F.status].filter(Boolean).length;
 const countIf = (skip, G) => ITEMS.reduce((n, it) => n + (match(it, G, skip) ? 1 : 0), 0);
-function upd(fn) { fn(F); saveF(); renderList(); }
+function upd(fn) { fn(F); saveF(); renderList(); trackFilters(); }
 const tog = (arr, x) => arr.includes(x) ? arr.filter(y => y !== x) : arr.concat([x]);
 function chip(label, on, n, onclick, tip) {
   return h("button", { type: "button", class: "chip" + (on ? " on" : "") + (n === 0 && !on ? " zero" : ""), "aria-pressed": String(!!on), title: tip || null, onclick },
@@ -1049,6 +1049,7 @@ function famNav(it) {
 }
 function openEx(id) {
   cur = byId.get(id) || null;
+  if (cur) track("open", id);
   if (cur && COLLAPSED.has(cur.family)) { COLLAPSED.delete(cur.family); saveCollapsed(); }
   if (cur && (urlId() !== id || (PUBLIC && location.hash))) history.replaceState(null, "", cardURL(id));
   if (cur && PUBLIC) document.title = cur.name + " — Атлас упражнений";
@@ -1062,11 +1063,50 @@ function step(d) {
   const i = cur ? shown.findIndex(x => x.id === cur.id) : -1;
   openEx(shown[Math.min(shown.length - 1, Math.max(0, i + d))].id);
 }
-$("q").oninput = renderList;
+$("q").oninput = () => { renderList(); trackSearch(); };
+/* анонимная статистика (автор 2026-11-05): какие карточки открывают, какие фильтры включают, что ищут. Только в публичной
+   версии; без cookies и без данных о посетителе — сервер копит счётчики «за день: что — сколько раз» (comments/worker.js, /ev). */
+const EVQ = [];
+function track(kind, key) {
+  if (!PUBLIC || !key) return;
+  EVQ.push([kind, String(key).slice(0, 80)]);
+  if (EVQ.length >= 15) flushEv();
+}
+function flushEv() {
+  if (!EVQ.length) return;
+  const body = JSON.stringify({ e: EVQ.splice(0, 20) });
+  try { navigator.sendBeacon ? navigator.sendBeacon(COMMENTS.api + "/ev", body) : fetch(COMMENTS.api + "/ev", { method: "POST", body, keepalive: true }); } catch (e) {}
+}
+setInterval(flushEv, 10000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushEv(); });
+let SEARCH_T = null;
+function trackSearch() {
+  clearTimeout(SEARCH_T);
+  SEARCH_T = setTimeout(() => { const q = $("q").value.trim().toLowerCase().replace(/\s+/g, " "); if (q.length >= 2) track("search", q); }, 1500);
+}
+let FPREV = new Set(), FILT_T = null;
+function filterKeys() {   // включённые фильтры — как строки «вид:значение»
+  const out = new Set();
+  if (F.lvl >= 0) out.add("level:" + K[F.lvl]);
+  for (const x of F.steps || []) out.add("step:" + x);
+  for (const x of F.asps || []) out.add("aspect:" + x);
+  for (const x of F.forms || []) out.add("form:" + x);
+  for (const x of F.weap || []) out.add("weapon:" + x);
+  for (const x of F.types || []) out.add("type:" + x);
+  for (const x of F.conds || []) out.add("cond:" + x);
+  if (F.topic) out.add("topic:" + F.topic);
+  if (F.obvious) out.add("obvious");
+  return out;
+}
+function trackFilters() {
+  clearTimeout(FILT_T);
+  FILT_T = setTimeout(() => { const now = filterKeys(); for (const k of now) if (!FPREV.has(k)) track("filter", k); FPREV = now; }, 2000);
+}
+window.addEventListener("appinstalled", () => track("app", "installed"));
 $("tree-collapse").onclick = () => { COLLAPSED = new Set(ITEMS.map(x => x.family).filter(f => !cur || f !== cur.family)); saveCollapsed(); renderList(); };
 $("tree-expand").onclick = () => { COLLAPSED = new Set(); saveCollapsed(); renderList(); };
 setTheme(themeNow(), false);
-$("theme").onclick = () => setTheme(themeNow() === "dark" ? "light" : "dark", true);
+$("theme").onclick = () => { setTheme(themeNow() === "dark" ? "light" : "dark", true); track("theme", themeNow()); };
 /* ширина панелей фильтров и списка: тянуть за край мышью или стрелками с клавиатуры; запоминается в браузере */
 (function initResize() {
   const KEY = "atlas-cols", MIN = 220, MAX = 640, MAIN_MIN = 480, ST = { aside: "--wa", side: "--ws" };
@@ -1132,13 +1172,13 @@ function renderSources(box) {
 function showSources(push) {
   if (push) history.pushState(null, "", cardURL("sources"));
   if (cur) LAST = cur;
-  cur = null; PAGE = "sources"; document.title = "Использованные источники — Атлас упражнений";
+  cur = null; PAGE = "sources"; document.title = "Использованные источники — Атлас упражнений"; track("page", "sources");
   renderCard(); renderNotes(); renderList();
   if (isMobile()) showView("about");
 }
 let LAST = null;   // упражнение, открытое до главной: вкладка «Карточка» вернёт к нему
 function showAbout(push) {
-  PAGE = "about";
+  PAGE = "about"; track("page", "about");
   if (push) history.pushState({ about: true }, "", listURL());
   if (cur) LAST = cur;
   cur = null; document.title = "Атлас упражнений";
@@ -1199,11 +1239,13 @@ document.addEventListener("keydown", e => {
     V = b.voc; SRC = b.sources; NOTES = b.notes || []; REVIEWED = b.reviewed || {}; ABOUT = b.about || "";
     ITEMS = b.items.sort((x, y) => String(x.family).localeCompare(String(y.family), "ru") || (x.family_order ?? 99) - (y.family_order ?? 99) || x.name.localeCompare(y.name, "ru"));
     byId = new Map(ITEMS.map(x => [x.id, x]));
-    loadView(); $("view-btn").hidden = $("tab-view").hidden = !PUBLIC; $("mod-link").hidden = PUBLIC;
+    loadView(); $("view-btn").hidden = $("tab-view").hidden = !PUBLIC; $("mod-link").hidden = $("stats-link").hidden = PUBLIC;
     // публичная версия: фоновый скрипт сохраняет атлас в телефоне — дальше он открывается и без интернета (build_web.py → sw.js)
     if (PUBLIC) loadCounts();
     if (PUBLIC && "serviceWorker" in navigator) navigator.serviceWorker.register(ROOT + "sw.js").catch(() => {});
     initFilters();
+    FPREV = filterKeys();   // сохранённые с прошлого раза фильтры — не новое действие
+    if (window.matchMedia && matchMedia("(display-mode: standalone)").matches) track("app", "standalone");
     try { localStorage.removeItem("atlas-filters-open"); } catch (e) {}   // фильтры больше не сворачиваются
     const start = urlId();
     let seen = false; try { seen = localStorage.getItem("atlas-about-seen") === "1"; } catch (e) {}

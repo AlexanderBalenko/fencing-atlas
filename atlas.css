@@ -337,7 +337,7 @@ body.resizing{cursor:col-resize; user-select:none}
 .trow.on .tw, .trow.on .tn{color:var(--accent)}
 .trow.zero{opacity:.5}
 @media (max-width: 700px){ .trow{padding:9px 12px; font-size:.92rem} .trow.sub{padding-left:30px} }
-#mod-link{font-size:.82rem; color:var(--accent); white-space:nowrap}
+#mod-link, #stats-link{font-size:.82rem; color:var(--accent); white-space:nowrap}
 .titlebar h1{flex:1 0 100%}
 .titlebar h1 a{color:inherit; text-decoration:none; display:inline-flex; align-items:center; gap:8px}
 /* эмблема автора (build/assets/emblem.png) — маской: цвет берётся из темы */
