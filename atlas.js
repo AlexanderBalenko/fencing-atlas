@@ -360,7 +360,7 @@ const isPsyche = it => roleRows(it).some(([, r]) => fstep(r) === K.indexOf("psyc
 function trainedRows(it) {   // номера, которые тренируются: партнёр-помощник не в счёт (если есть кто-то ещё)
   const rs = roleRows(it);
   if (!F.noHelper) return rs;
-  const t = rs.filter(([, r]) => r.goal !== "helps");
+  const t = rs.filter(([, r]) => r.goal !== "helps" && !(Array.isArray(r.goal) && r.goal.every(g => g === "helps")));
   return t.length ? t : rs;
 }
 /* Уровень группы — ступени, которые уже стоят (автор 2026-11-01): упражнение по уровню, если его ✓ «должно быть уже
@@ -667,7 +667,7 @@ function training(r, it, fieldNotesPrefix) {
   return [
     h("dl", { class: "kv" },
       h("dt", null, "Тренируем", helpBtn("train")), h("dd", null, aspects(r.focus, r.also)),
-      r.goal && SHOW.goal ? [h("dt", null, "Цель номера", helpBtn("goal")), h("dd", null, V.partner_goals[r.goal] || r.goal)] : null,
+      r.goal && SHOW.goal ? [h("dt", null, "Цель номера", helpBtn("goal")), h("dd", null, goalText(r.goal))] : null,
       r.success_visibility && SHOW.errorVis ? [h("dt", null, "Успех виден", helpBtn("errvis")), h("dd", null,   // упражнения на баланс и снятие барьеров: важно увидеть успех, а не ошибку
         lvl((r.success_visibility || {}).level, x => (V.error_visibility_levels[x] || x).split(" — ")[0]) || "",
         h("div", { class: (r.success_visibility.level || []).length ? "meta" : "" }, refText(r.success_visibility.how)))] : null,
@@ -720,7 +720,7 @@ function renderCard() {
     m.append(blk(it.structure === "symmetric" ? "Оба номера" : "Занимающийся", "training", h("div", { class: "role" }, training(it, it, ""))));
     const pt = it.partner;   // второй участник, который сам не тренируется: что делает и с какой целью
     if (pt && (pt.task || pt.goal)) m.append(blk(pt.who ? pt.who[0].toUpperCase() + pt.who.slice(1) : "Тренер / партнёр", "partner", h("dl", { class: "kv" },
-      pt.goal ? [h("dt", null, "Цель"), h("dd", null, V.partner_goals[pt.goal] || pt.goal)] : null,
+      pt.goal ? [h("dt", null, "Цель"), h("dd", null, goalText(pt.goal))] : null,
       pt.task ? [h("dt", null, "Что делает"), h("dd", null, richText(pt.task))] : null)));
   }
   if (it.probes && it.probes.length) {
@@ -1286,6 +1286,12 @@ function renderAbout(box) {
 }
 /* список использованных источников (автор 2026-11-05): по периодам, внутри — по году; сколько упражнений опирается на источник */
 let PAGE = "about";
+// цель партнёра — одно значение или диапазон [от, до]: «нейтральный → противодействует» (автор 2026-11-06)
+function goalText(g) {
+  const gs = Array.isArray(g) ? g : [g];
+  if (gs.length === 1) return V.partner_goals[gs[0]] || gs[0];
+  return gs.map(x => String(V.partner_goals[x] || x).split(":")[0]).join(" → ");
+}
 function renderSources(box) {
   const cnt = {};
   for (const x of ITEMS) for (const k of new Set((x.sources || []).map(s => s.source))) cnt[k] = (cnt[k] || 0) + 1;
