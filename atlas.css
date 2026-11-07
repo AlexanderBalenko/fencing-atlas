@@ -66,6 +66,7 @@ aside h1{font-size:1.05rem; margin:0; font-weight:600}
 .badge.done{background:color-mix(in srgb, var(--done) 18%, transparent); color:var(--done)}
 
 main{overflow:auto; padding:18px 28px 40px; min-width:0}
+main{padding-inline:max(28px, calc((100% - 860px) / 2))}   /* на широком экране всё в колонку 860px по центру (автор 2026-11-07) */
 main h2{font-size:1.35rem; margin:2px 0 4px; line-height:1.25; text-wrap:balance; font-weight:600}
 .sub{color:var(--muted); font-size:.85rem; display:flex; gap:4px 14px; flex-wrap:wrap}
 .sub code{font-family:var(--font-data); font-size:.8rem}
